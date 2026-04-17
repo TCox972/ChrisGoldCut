@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     // pour récupérer fideliteReductionEur fiable
     const rdvs = await Reservation.collection
       .find({
-        statut: { $ne: 'annule' },
+        statut: { $nin: ['annule', 'absent'] },
         date:   { $gte: start, $lte: end },
       })
       .toArray();

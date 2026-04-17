@@ -14,7 +14,7 @@ type Rdv = {
   prestations: string[];
   dureeMinutes: number;
   date: string;
-  statut: 'a-venir' | 'termine' | 'annule';
+  statut: 'a-venir' | 'termine' | 'annule' | 'absent';
   employeId?: string | null;
   achats?: Achat[];
   prestationValidee?: boolean;

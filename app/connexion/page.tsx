@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getSession } from 'next-auth/react';
 import Navbar from '@/components/layout/Navbar';
@@ -15,6 +15,14 @@ const errorMessages: Record<string, string> = {
 };
 
 export default function ConnexionPage() {
+  return (
+    <Suspense>
+      <ConnexionContent />
+    </Suspense>
+  );
+}
+
+function ConnexionContent() {
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [error,    setError]    = useState('');
@@ -34,18 +42,18 @@ export default function ConnexionPage() {
     const ok = await login(email, password);
     setLoading(false);
 
-if (ok) {
-  const callbackUrl = searchParams.get('callbackUrl');
-  if (callbackUrl) { window.location.href = callbackUrl; return; }
+    if (ok) {
+      const callbackUrl = searchParams.get('callbackUrl');
+      if (callbackUrl) { window.location.href = callbackUrl; return; }
 
-  try {
-    const session = await getSession();
-    const role = (session?.user as any)?.role;
-    window.location.href = (role === 'admin' || role === 'employe') ? '/admin/reservations' : '/compte/informations';
-  } catch {
-    window.location.href = '/compte/informations';
-  }
-}
+      try {
+        const session = await getSession();
+        const role = (session?.user as any)?.role;
+        window.location.href = (role === 'admin' || role === 'employe') ? '/admin/reservations' : '/compte/informations';
+      } catch {
+        window.location.href = '/compte/informations';
+      }
+    }
   };
 
   return (

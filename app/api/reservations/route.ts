@@ -8,6 +8,7 @@ import User from '@/models/User';
 import { generateUniqueNumero } from '@/models/UsedNumero';
 import { requireAuth, getSession } from '@/lib/auth';
 import { getOccupiedSlots, isSlotAvailable, parseDuree, dateToSlot, generateAllSlots } from '@/lib/slots';
+import { notifyBookingConfirmation } from '@/lib/notifications';
 
 // ─── GET /api/reservations ─────────────────────────────────────────────────────
 // Params optionnels : statut, limit, month, employeId
@@ -215,6 +216,18 @@ export async function POST(req: NextRequest) {
       dureeMinutes: duree,
       date:         rdvDate,
       achats,
+    });
+
+    // Envoi de l'email de confirmation (non bloquant)
+    notifyBookingConfirmation({
+      numero: reservation.numero,
+      _id: reservation._id.toString(),
+      clientNom,
+      clientEmail,
+      clientTel,
+      prestations,
+      date: rdvDate,
+      pourQui,
     });
 
     return NextResponse.json(reservation, { status: 201 });

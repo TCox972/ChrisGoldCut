@@ -36,6 +36,7 @@ export default function MesAchatsPage() {
   const [draftQty,  setDraftQty]  = useState<Record<string, number>>({});
   const [saving,    setSaving]    = useState(false);
   const [tab,       setTab]       = useState<'en-cours' | 'passees'>('en-cours');
+  const [erreur,    setErreur]    = useState('');
 
   // ─── Chargement des commandes (attend que la session soit prête) ───────────
   // On masque uniquement les commandes annulées. Les commandes entièrement
@@ -48,7 +49,7 @@ export default function MesAchatsPage() {
         if (!Array.isArray(d)) { setCommandes([]); return; }
         setCommandes(d.filter(c => c.statut !== 'annulee'));
       })
-      .catch(console.error)
+      .catch(() => setErreur('Impossible de charger vos commandes.'))
       .finally(() => setLoading(false));
   }, [authLoading, user?.id]);
 
@@ -139,6 +140,9 @@ export default function MesAchatsPage() {
   return (
     <div>
       <CompteNav />
+      {erreur && (
+        <p className="text-red-400 text-sm font-body bg-red-900/20 rounded px-4 py-3 mb-4">{erreur}</p>
+      )}
       <h1 className="font-display text-2xl font-bold tracking-[0.15em] uppercase text-white mb-6">
         Mes achats
       </h1>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import CompteNav from '@/components/public/CompteNav';
 import { useAuth } from '@/lib/auth-context';
-import { User, Users, Edit3, Save, Plus, Trash2, Loader2 } from 'lucide-react';
+import { User, Users, Edit3, Save, Plus, Trash2, Loader2, Lock, Eye, EyeOff } from 'lucide-react';
 
 type UserData = {
   prenom: string; nom: string; email: string; telephone: string;
@@ -16,6 +16,16 @@ export default function InformationsPage() {
   const [editing, setEditing] = useState(false);
   const [saving,  setSaving]  = useState(false);
   const [draft,   setDraft]   = useState<UserData | null>(null);
+
+  // Changement de mot de passe
+  const [showPwdForm, setShowPwdForm] = useState(false);
+  const [currentPwd,  setCurrentPwd]  = useState('');
+  const [newPwd,      setNewPwd]      = useState('');
+  const [confirmPwd,  setConfirmPwd]  = useState('');
+  const [pwdLoading,  setPwdLoading]  = useState(false);
+  const [pwdMsg,      setPwdMsg]      = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew,     setShowNew]     = useState(false);
 
   // Charge le profil complet depuis l'API (attend que la session soit prête)
   useEffect(() => {
@@ -44,6 +54,42 @@ export default function InformationsPage() {
       setEditing(false);
     }
     setSaving(false);
+  };
+
+  const changePassword = async () => {
+    setPwdMsg(null);
+    if (!currentPwd || !newPwd) {
+      setPwdMsg({ type: 'err', text: 'Veuillez remplir tous les champs.' });
+      return;
+    }
+    if (newPwd.length < 6) {
+      setPwdMsg({ type: 'err', text: 'Le nouveau mot de passe doit contenir au moins 6 caractères.' });
+      return;
+    }
+    if (newPwd !== confirmPwd) {
+      setPwdMsg({ type: 'err', text: 'Les mots de passe ne correspondent pas.' });
+      return;
+    }
+    setPwdLoading(true);
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: currentPwd, newPassword: newPwd }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPwdMsg({ type: 'err', text: data.error || 'Erreur.' });
+      } else {
+        setPwdMsg({ type: 'ok', text: 'Mot de passe modifié avec succès.' });
+        setCurrentPwd(''); setNewPwd(''); setConfirmPwd('');
+        setTimeout(() => setShowPwdForm(false), 2000);
+      }
+    } catch {
+      setPwdMsg({ type: 'err', text: 'Erreur réseau.' });
+    } finally {
+      setPwdLoading(false);
+    }
   };
 
   const removeOther = (idx: number) =>
@@ -112,6 +158,75 @@ export default function InformationsPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Mot de passe */}
+      <div className="bg-white rounded-lg p-8 mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Lock size={18} className="text-gray-500" />
+            <h2 className="font-body text-base font-semibold text-gray-900">Mot de passe</h2>
+          </div>
+          {!showPwdForm && (
+            <button onClick={() => { setShowPwdForm(true); setPwdMsg(null); }}
+              className="btn-gold-outline text-xs px-5 py-2 flex items-center gap-2">
+              <Edit3 size={13} /> Modifier
+            </button>
+          )}
+        </div>
+
+        {showPwdForm && (
+          <div className="mt-6 max-w-sm space-y-4">
+            <div className="relative">
+              <label className="font-body text-xs font-semibold text-gray-700 block mb-1">Mot de passe actuel</label>
+              <input type={showCurrent ? 'text' : 'password'} value={currentPwd}
+                onChange={e => setCurrentPwd(e.target.value)}
+                className="block w-full border-b border-gray-300 pb-1 pr-8 font-body text-sm text-gray-900 outline-none focus:border-yellow-500" />
+              <button type="button" onClick={() => setShowCurrent(!showCurrent)}
+                className="absolute right-0 bottom-1 text-gray-400 hover:text-gray-600">
+                {showCurrent ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+            <div className="relative">
+              <label className="font-body text-xs font-semibold text-gray-700 block mb-1">Nouveau mot de passe</label>
+              <input type={showNew ? 'text' : 'password'} value={newPwd}
+                onChange={e => setNewPwd(e.target.value)} minLength={6}
+                className="block w-full border-b border-gray-300 pb-1 pr-8 font-body text-sm text-gray-900 outline-none focus:border-yellow-500" />
+              <button type="button" onClick={() => setShowNew(!showNew)}
+                className="absolute right-0 bottom-1 text-gray-400 hover:text-gray-600">
+                {showNew ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+            <div>
+              <label className="font-body text-xs font-semibold text-gray-700 block mb-1">Confirmer le nouveau mot de passe</label>
+              <input type="password" value={confirmPwd}
+                onChange={e => setConfirmPwd(e.target.value)} minLength={6}
+                className="block w-full border-b border-gray-300 pb-1 font-body text-sm text-gray-900 outline-none focus:border-yellow-500" />
+            </div>
+
+            {pwdMsg && (
+              <p className={`text-xs font-body rounded px-3 py-2 ${
+                pwdMsg.type === 'ok' ? 'text-green-700 bg-green-50' : 'text-red-600 bg-red-50'
+              }`}>
+                {pwdMsg.text}
+              </p>
+            )}
+
+            <div className="flex gap-3 pt-2">
+              <button onClick={changePassword} disabled={pwdLoading}
+                className="btn-gold text-xs px-5 py-2 flex items-center gap-2 disabled:opacity-60">
+                {pwdLoading ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                Enregistrer
+              </button>
+              <button onClick={() => {
+                setShowPwdForm(false); setPwdMsg(null);
+                setCurrentPwd(''); setNewPwd(''); setConfirmPwd('');
+              }} className="btn-gold-outline text-xs px-5 py-2">
+                Annuler
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Autres personnes */}

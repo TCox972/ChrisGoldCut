@@ -204,7 +204,7 @@ export default function PanierPage() {
                   <div className="flex flex-col gap-2.5 text-sm font-body">
                     <div className="flex justify-between text-gray-600">
                       <span>Articles</span>
-                      <span className="font-medium">{totalItems} Un</span>
+                      <span className="font-medium">{totalItems} article{totalItems > 1 ? 's' : ''}</span>
                     </div>
                     <div className="flex justify-between text-gray-600">
                       <span>Sous-total</span>

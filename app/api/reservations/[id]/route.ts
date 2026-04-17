@@ -6,6 +6,7 @@ import ClosedDay from '@/models/ClosedDay';
 import Prestation from '@/models/Prestation';
 import { requireAuth } from '@/lib/auth';
 import { dateToSlot, generateAllSlots, getOccupiedSlots, isSlotAvailable, parseDuree } from '@/lib/slots';
+import { notifyCancellation, notifyDelay } from '@/lib/notifications';
 
 type Params = { params: { id: string } };
 
@@ -121,6 +122,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 });
     }
 
+    // ── Marquer absent (staff) ───────────────────────────────────────────
+    if (body.statut === 'absent') {
+      rdv.statut = 'absent';
+      await Reservation.collection.updateOne({ _id: rdv._id }, { $set: { statut: 'absent' } });
+      const fresh = await Reservation.collection.findOne({ _id: rdv._id });
+      return NextResponse.json(fresh ?? rdv);
+    }
+
     // ── Champs booléens : retardSignale / prestationValidee ───────────────
     // On contourne Mongoose (bug de cache de schéma en HMR dev qui peut
     // silencieusement ignorer les nouveaux champs) en utilisant le driver natif.
@@ -128,6 +137,20 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (typeof body.retardSignale === 'boolean') {
       rdv.retardSignale = body.retardSignale;
       nativeSet.retardSignale = body.retardSignale;
+
+      // Envoyer un SMS au client pour l'informer du retard
+      if (body.retardSignale) {
+        notifyDelay({
+          numero: rdv.numero,
+          _id: rdv._id.toString(),
+          clientNom: rdv.clientNom,
+          clientEmail: rdv.clientEmail,
+          clientTel: rdv.clientTel,
+          prestations: rdv.prestations,
+          date: rdv.date,
+          pourQui: rdv.pourQui,
+        });
+      }
     }
     if (typeof body.prestationValidee === 'boolean') {
       const wasValidee = rdv.prestationValidee === true;
@@ -247,6 +270,21 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       for (const key of allowed) {
         if (body[key] !== undefined) (rdv as any)[key] = body[key];
       }
+    }
+
+    // ── Annulation par le staff avec motif → notifications ──────────────
+    if (body.statut === 'annule' && body.motifAnnulation) {
+      nativeSet.motifAnnulation = body.motifAnnulation;
+      notifyCancellation({
+        numero: rdv.numero,
+        _id: rdv._id.toString(),
+        clientNom: rdv.clientNom,
+        clientEmail: rdv.clientEmail,
+        clientTel: rdv.clientTel,
+        prestations: rdv.prestations,
+        date: rdv.date,
+        pourQui: rdv.pourQui,
+      }, body.motifAnnulation);
     }
 
     await rdv.save();

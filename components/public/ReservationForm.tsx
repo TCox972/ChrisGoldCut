@@ -112,7 +112,7 @@ export default function ReservationForm() {
         setPrestations(Array.isArray(prestas) ? prestas : []);
         setStaff(Array.isArray(staffData) ? staffData : []);
       })
-      .catch(console.error)
+      .catch(() => setErrMsg('Impossible de charger les prestations. Veuillez rafraîchir la page.'))
       .finally(() => setLoadingP(false));
   }, []);
 
@@ -131,7 +131,7 @@ export default function ReservationForm() {
           telephone: data.telephone || f.telephone,
         }));
       })
-      .catch(console.error);
+      .catch(() => {});
 
     fetch('/api/reservations?limit=1')
       .then(r => r.json())
@@ -141,7 +141,7 @@ export default function ReservationForm() {
           setLastPrestaId(rdvs[0].prestations[0]);
         }
       })
-      .catch(console.error);
+      .catch(() => {});
   }, [isConnected]);
 
   // ─── 3. Pré-remplir la prestation ──────────────────────────────────────────
@@ -187,7 +187,7 @@ export default function ReservationForm() {
         setSlots(data.slots ?? []);
         setDureeMinutes(data.dureeMinutes ?? computedDuree);
       })
-      .catch(console.error)
+      .catch(() => setErrMsg('Impossible de charger les créneaux.'))
       .finally(() => setLoadingSlots(false));
   }, [form.date, form.prestationIds, form.employeId, computedDuree]);
 

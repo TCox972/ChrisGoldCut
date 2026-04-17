@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
     // Toutes les réservations du mois pour cet employé (hors annulées)
     const rdvs = await Reservation.find({
       employeId: targetId,
-      statut:    { $ne: 'annule' },
+      statut:    { $nin: ['annule', 'absent'] },
       date:      { $gte: start, $lte: end },
     })
       .sort({ date: 1 })
@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
     const freshRdvs = await Reservation.collection
       .find({
         employeId: employe._id,
-        statut:    { $ne: 'annule' },
+        statut:    { $nin: ['annule', 'absent'] },
         date:      { $gte: start, $lte: end },
       })
       .toArray();

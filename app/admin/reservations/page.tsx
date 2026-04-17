@@ -5,7 +5,7 @@ import {
   ChevronLeft, ChevronRight, Loader2, Lock, Unlock,
   Trash2, X, Clock, AlertTriangle, Eye, CalendarDays,
   CalendarRange, CheckSquare, Square, ChevronDown, Check, Package,
-  Edit3, Plus, Gift,
+  Edit3, Plus, Gift, UserX,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 
@@ -151,6 +151,10 @@ export default function AdminReservationsPage() {
 
   // Confirmation avant validation prestation
   const [showConfirmValid, setShowConfirmValid] = useState(false);
+
+  // Modale annulation avec motif
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelMotif,     setCancelMotif]     = useState('');
 
   // ─── Chargement des prestations ────────────────────────────────────────────
   useEffect(() => {
@@ -407,13 +411,39 @@ export default function AdminReservationsPage() {
     }
   };
 
-  // ─── Supprimer une réservation ────────────────────────────────────────────
-  const supprimer = async (id: string) => {
-    if (!confirm('Supprimer cette réservation ?')) return;
-    const res = await fetch(`/api/reservations/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      setRdvs(prev => prev.filter(r => r._id !== id));
-      if (detailRdv?._id === id) setDetailRdv(null);
+  // ─── Annuler une réservation (avec motif + notifications) ─────────────────
+  const annulerRdv = async (id: string, motif: string) => {
+    try {
+      const res = await fetch(`/api/reservations/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statut: 'annule', motifAnnulation: motif }),
+      });
+      if (res.ok) {
+        setRdvs(prev => prev.map(r => r._id === id ? { ...r, statut: 'annule' } : r));
+        if (detailRdv?._id === id) setDetailRdv(null);
+        setShowCancelModal(false);
+        setCancelMotif('');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // ─── Marquer un client comme absent ────────────────────────────────────────
+  const marquerAbsent = async (id: string) => {
+    try {
+      const res = await fetch(`/api/reservations/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statut: 'absent' }),
+      });
+      if (res.ok) {
+        setRdvs(prev => prev.map(r => r._id === id ? { ...r, statut: 'absent' } : r));
+        if (detailRdv?._id === id) setDetailRdv(null);
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -551,7 +581,7 @@ export default function AdminReservationsPage() {
   // ─── Indicateurs par jour ─────────────────────────────────────────────────
   const rdvCountByDay = new Map<string, number>();
   for (const r of rdvs) {
-    if (r.statut === 'annule') continue;
+    if (r.statut === 'annule' || r.statut === 'absent') continue;
     const ds = toDateStr(new Date(r.date));
     rdvCountByDay.set(ds, (rdvCountByDay.get(ds) ?? 0) + 1);
   }
@@ -679,7 +709,7 @@ export default function AdminReservationsPage() {
             const selected       = selectionMode && isSelected(selectedDate, slot);
 
             const contRdv    = continuationMap.get(slot);
-            const isValidated = (rdv?.prestationValidee ?? contRdv?.prestationValidee) === true;
+            const isValidated = (rdv?.prestationValidee ?? contRdv?.prestationValidee) === true || (rdv?.statut ?? contRdv?.statut) === 'absent';
 
             return (
               <div
@@ -731,10 +761,16 @@ export default function AdminReservationsPage() {
                           <AlertTriangle size={12} />
                         </span>
                       )}
-                      {isValidated && (
+                      {isValidated && rdv.statut !== 'absent' && (
                         <span className="inline-flex items-center gap-1 font-body text-[10px] font-semibold uppercase tracking-wider
                           text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
                           <Check size={10} /> Terminée
+                        </span>
+                      )}
+                      {rdv.statut === 'absent' && (
+                        <span className="inline-flex items-center gap-1 font-body text-[10px] font-semibold uppercase tracking-wider
+                          text-gray-500 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">
+                          <UserX size={10} /> Absent
                         </span>
                       )}
                     </div>
@@ -765,9 +801,9 @@ export default function AdminReservationsPage() {
                           <Eye size={14} />
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); supprimer(rdv._id); }}
+                          onClick={(e) => { e.stopPropagation(); setDetailRdv(rdv); setShowCancelModal(true); setCancelMotif(''); }}
                           className="text-gray-300 hover:text-red-400 transition-colors"
-                          title="Supprimer"
+                          title="Annuler le RDV"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -889,7 +925,12 @@ export default function AdminReservationsPage() {
                             <div className="font-body text-[8px] text-gray-400 tabular-nums truncate leading-tight">
                               #{rdv.numero}
                             </div>
-                            {isValidated ? (
+                            {rdv.statut === 'absent' ? (
+                              <div className="inline-flex items-center gap-0.5 font-body text-[8px] font-semibold uppercase tracking-wider
+                                text-gray-500 bg-gray-100 border border-gray-200 px-1 py-0 rounded-full leading-tight">
+                                <UserX size={7} /> Absent
+                              </div>
+                            ) : isValidated ? (
                               <div className="inline-flex items-center gap-0.5 font-body text-[8px] font-semibold uppercase tracking-wider
                                 text-green-700 bg-green-50 border border-green-200 px-1 py-0 rounded-full leading-tight">
                                 <Check size={7} /> Terminée
@@ -1245,7 +1286,15 @@ export default function AdminReservationsPage() {
           {/* Actions */}
           <div className="px-6 py-4 border-t border-gray-100 space-y-2">
             {/* Valider la prestation : action principale */}
-            {!rdv.prestationValidee && rdv.statut !== 'annule' && (
+            {/* Statut absent */}
+            {rdv.statut === 'absent' && (
+              <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                <UserX size={14} className="text-gray-500" />
+                <span className="font-body text-xs text-gray-500 font-medium">Client absent</span>
+              </div>
+            )}
+
+            {!rdv.prestationValidee && rdv.statut !== 'annule' && rdv.statut !== 'absent' && (
               <button
                 onClick={() => setShowConfirmValid(true)}
                 className="w-full flex items-center justify-center gap-2 font-body text-sm font-semibold
@@ -1256,7 +1305,7 @@ export default function AdminReservationsPage() {
               </button>
             )}
 
-            {!rdv.prestationValidee && (
+            {!rdv.prestationValidee && rdv.statut !== 'annule' && rdv.statut !== 'absent' && (
               <div className="flex gap-3">
                 {rdv.statut === 'a-venir' && !rdv.retardSignale && (
                   <button
@@ -1269,7 +1318,15 @@ export default function AdminReservationsPage() {
                   </button>
                 )}
                 <button
-                  onClick={() => supprimer(rdv._id)}
+                  onClick={() => marquerAbsent(rdv._id)}
+                  className="flex-1 flex items-center justify-center gap-2 font-body text-sm font-medium
+                    bg-gray-50 text-gray-600 border border-gray-200 rounded-lg px-4 py-2.5
+                    hover:bg-gray-100 transition-colors"
+                >
+                  <UserX size={14} /> Absent
+                </button>
+                <button
+                  onClick={() => { setShowCancelModal(true); setCancelMotif(''); }}
                   className="flex-1 flex items-center justify-center gap-2 font-body text-sm font-medium
                     bg-red-50 text-red-600 border border-red-200 rounded-lg px-4 py-2.5
                     hover:bg-red-100 transition-colors"
@@ -1359,6 +1416,58 @@ export default function AdminReservationsPage() {
           </div>
         );
       })()}
+
+      {/* ── Modale annulation avec motif ── */}
+      {showCancelModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
+          onClick={() => setShowCancelModal(false)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4"
+            onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h3 className="font-body text-base font-bold text-red-600">Annuler le rendez-vous</h3>
+              <p className="font-body text-xs text-gray-500 mt-0.5">RDV {rdv.numero} — {rdv.clientNom}</p>
+            </div>
+
+            <div className="px-6 py-4">
+              <label className="font-body text-sm font-medium text-gray-700 block mb-2">
+                Motif d'annulation <span className="text-red-400">*</span>
+              </label>
+              <textarea
+                value={cancelMotif}
+                onChange={e => setCancelMotif(e.target.value)}
+                placeholder="Ex : Indisponibilité du coiffeur, fermeture exceptionnelle..."
+                rows={3}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 font-body text-sm
+                  text-gray-900 outline-none focus:border-yellow-500 resize-none"
+              />
+              <p className="font-body text-[11px] text-gray-400 mt-1">
+                Un email et un SMS seront envoyés au client avec ce motif.
+              </p>
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="flex-1 font-body text-sm font-medium text-gray-600 bg-gray-100
+                  rounded-lg px-4 py-2.5 hover:bg-gray-200 transition-colors"
+              >
+                Retour
+              </button>
+              <button
+                onClick={() => {
+                  if (!cancelMotif.trim()) { alert('Le motif est obligatoire.'); return; }
+                  annulerRdv(rdv._id, cancelMotif.trim());
+                }}
+                className="flex-1 flex items-center justify-center gap-2 font-body text-sm font-semibold
+                  bg-red-500 text-white rounded-lg px-4 py-2.5
+                  hover:bg-red-600 transition-colors"
+              >
+                <Trash2 size={14} /> Confirmer l'annulation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </>
     );
   };

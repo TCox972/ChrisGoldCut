@@ -56,12 +56,12 @@ export default function HomePage() {
           <div className="max-w-5xl mx-auto px-6 py-3 flex flex-wrap items-center justify-between gap-4 text-xs font-body font-medium text-gray-900">
             <span>📞 +596 (0)696 10 20 30</span>
             <span>📍 Impasse de la Sablière — 97224 DUCOS</span>
-            <span>🕐 Du mardi au samedi — De 8h à 17h</span>
+            <span>🕐 Du lundi au samedi — De 9h à 18h</span>
             <div className="flex items-center gap-3">
-              <a href="https://www.instagram.com/gold_cut777?igsh=MWdmbDF0YWpiNWxibw==" className="hover:opacity-70">
+              <a href="https://www.instagram.com/gold_cut777?igsh=MWdmbDF0YWpiNWxibw==" target="_blank" rel="noopener noreferrer" className="hover:opacity-70">
                 <Icon icon="cib:instagram" width="24" height="24" />
               </a>
-              <a href="https://wa.me/+596696301020" className="hover:opacity-70">
+              <a href="https://wa.me/+596696102030" target="_blank" rel="noopener noreferrer" className="hover:opacity-70">
                 <Icon icon="cib:whatsapp" width="24" height="24" />
               </a>
             </div>
