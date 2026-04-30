@@ -35,7 +35,6 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
-<<<<<<< HEAD
     // Vérifier si c'est un dimanche
     const dayStart = new Date(`${dateStr}T00:00:00`);
     if (dayStart.getDay() === 0) {
@@ -49,10 +48,6 @@ export async function GET(req: NextRequest) {
     }
 
     // Vérifier si c'est un jour de fermeture
-=======
-    // Vérifier si c'est un jour de fermeture
-    const dayStart = new Date(`${dateStr}T00:00:00`);
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     const dayEnd   = new Date(`${dateStr}T23:59:59`);
 
     const closedDay = await ClosedDay.findOne({

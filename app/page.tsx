@@ -56,21 +56,12 @@ export default function HomePage() {
           <div className="max-w-5xl mx-auto px-6 py-3 flex flex-wrap items-center justify-between gap-4 text-xs font-body font-medium text-gray-900">
             <span>📞 +596 (0)696 10 20 30</span>
             <span>📍 Impasse de la Sablière — 97224 DUCOS</span>
-<<<<<<< HEAD
             <span>🕐 Du lundi au samedi — De 9h à 18h</span>
             <div className="flex items-center gap-3">
               <a href="https://www.instagram.com/gold_cut777?igsh=MWdmbDF0YWpiNWxibw==" target="_blank" rel="noopener noreferrer" className="hover:opacity-70">
                 <Icon icon="cib:instagram" width="24" height="24" />
               </a>
               <a href="https://wa.me/+596696102030" target="_blank" rel="noopener noreferrer" className="hover:opacity-70">
-=======
-            <span>🕐 Du mardi au samedi — De 8h à 17h</span>
-            <div className="flex items-center gap-3">
-              <a href="https://www.instagram.com/gold_cut777?igsh=MWdmbDF0YWpiNWxibw==" className="hover:opacity-70">
-                <Icon icon="cib:instagram" width="24" height="24" />
-              </a>
-              <a href="https://wa.me/+596696301020" className="hover:opacity-70">
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                 <Icon icon="cib:whatsapp" width="24" height="24" />
               </a>
             </div>
@@ -144,11 +135,7 @@ export default function HomePage() {
           </div>
           <div className="flex items-center justify-center gap-10 mt-6">
             {marques.map((m, i) => (
-<<<<<<< HEAD
               <span key={i} className="font-display font-bold text-sm tracking-[0.2em] uppercase text-gray-600 border border-gray-200 px-8 py-4 rounded">
-=======
-              <span key={i} className="font-display text-xs tracking-[0.2em] uppercase text-gray-400 border border-gray-200 px-4 py-2 rounded">
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                 {m}
               </span>
             ))}

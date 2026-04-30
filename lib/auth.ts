@@ -1,9 +1,5 @@
 import { getServerSession } from 'next-auth';
-<<<<<<< HEAD
 import { authOptions } from '@/lib/authOptions';
-=======
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 import { NextResponse } from 'next/server';
 
 /** Récupère la session courante côté serveur (dans une API route ou Server Component) */

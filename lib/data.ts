@@ -2,11 +2,7 @@
 
 export type Prestation = {
   id: string;
-<<<<<<< HEAD
   categorie: string;
-=======
-  categorie: 'Coupes' | 'Dégradés' | 'Barbe' | 'Soins';
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   nom: string;
   duree: string;
   prix: number;
@@ -14,11 +10,7 @@ export type Prestation = {
 
 export type Produit = {
   id: string;
-<<<<<<< HEAD
   categorie: string;
-=======
-  categorie: 'Barbe' | 'Cheveux' | 'Accessoires';
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   nom: string;
   description: string;
   prix: number;
@@ -115,20 +107,11 @@ export const reservations: Reservation[] = [
 ];
 
 export const horaires = [
-<<<<<<< HEAD
   { jour: 'Lun.',  horaire: '9 : 00 - 18 : 00' },
   { jour: 'Mar.',  horaire: '9 : 00 - 18 : 00' },
   { jour: 'Mer.',  horaire: '9 : 00 - 18 : 00' },
   { jour: 'Jeu.',  horaire: '9 : 00 - 18 : 00' },
   { jour: 'Ven.',  horaire: '9 : 00 - 18 : 00' },
   { jour: 'Sam.',  horaire: '9 : 00 - 18 : 00' },
-=======
-  { jour: 'Lun.',  horaire: 'Fermé' },
-  { jour: 'Mar.',  horaire: '8 : 00 - 17 : 00' },
-  { jour: 'Mer.',  horaire: '8 : 00 - 17 : 00' },
-  { jour: 'Jeu.',  horaire: '8 : 00 - 17 : 00' },
-  { jour: 'Ven.',  horaire: '8 : 00 - 17 : 00' },
-  { jour: 'Sam.',  horaire: '8 : 00 - 17 : 00' },
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   { jour: 'Dim.',  horaire: 'Fermé' },
 ];

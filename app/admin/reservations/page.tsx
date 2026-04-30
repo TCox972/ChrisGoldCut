@@ -5,11 +5,7 @@ import {
   ChevronLeft, ChevronRight, Loader2, Lock, Unlock,
   Trash2, X, Clock, AlertTriangle, Eye, CalendarDays,
   CalendarRange, CheckSquare, Square, ChevronDown, Check, Package,
-<<<<<<< HEAD
   Edit3, Plus, Gift, UserX,
-=======
-  Edit3, Plus, Gift,
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 
@@ -29,27 +25,18 @@ type Rdv = {
   createdAt: string;
 };
 
-<<<<<<< HEAD
 type FidelitePersonne = {
   pourQui:                 string;
   label:                   string;
-=======
-type Fidelite = {
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   totalValidees:           number;
   cycleCount:              number;
   reservationsUntilReward: number;
   palier:                  number;
   rewardEur:               number;
 };
-<<<<<<< HEAD
 type Fidelite = FidelitePersonne;
 
 type BlockedDay = { date: string; heures: string[]; adminHeures?: string[]; employeId?: string | null };
-=======
-
-type BlockedDay = { date: string; heures: string[]; employeId?: string | null };
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 type StaffMember = { _id: string; prenom: string; nom: string; role: string };
 type ViewMode = 'day' | 'week';
 
@@ -65,21 +52,13 @@ type Commande = {
 
 type PrestationItem = {
   _id: string;
-<<<<<<< HEAD
   categorie: string;
-=======
-  categorie: 'Coupes' | 'Dégradés' | 'Barbe' | 'Soins';
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   nom: string;
   duree: string;
   prix: number;
 };
 
 const MAX_PRESTATIONS_PAR_RDV = 3;
-<<<<<<< HEAD
-=======
-const PRESTA_CATEGORIES = ['Coupes', 'Dégradés', 'Barbe', 'Soins'] as const;
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
@@ -89,11 +68,7 @@ const JOURS_LONG  = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'
 
 const ALL_SLOTS = (() => {
   const s: string[] = [];
-<<<<<<< HEAD
   for (let m = 9 * 60; m < 18 * 60; m += 30) {
-=======
-  for (let m = 9 * 60; m < 19 * 60; m += 30) {
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     const h = Math.floor(m / 60);
     const min = m % 60;
     s.push(`${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`);
@@ -177,7 +152,6 @@ export default function AdminReservationsPage() {
   // Fidélité client affichée dans la modale
   const [detailFidelite, setDetailFidelite] = useState<Fidelite | null>(null);
 
-<<<<<<< HEAD
   // Confirmation avant validation prestation
   const [showConfirmValid, setShowConfirmValid] = useState(false);
 
@@ -187,20 +161,11 @@ export default function AdminReservationsPage() {
 
   // ─── Chargement des prestations ────────────────────────────────────────────
   useEffect(() => {
-=======
-  // ─── Chargement des prestations (admin) ───────────────────────────────────
-  useEffect(() => {
-    if (!isAdmin) return;
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     fetch('/api/prestations')
       .then(r => r.json())
       .then(d => setAllPrestations(Array.isArray(d) ? d : []))
       .catch(console.error);
-<<<<<<< HEAD
   }, []);
-=======
-  }, [isAdmin]);
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 
   // Réinitialiser l'édition quand on change de RDV ouvert
   useEffect(() => {
@@ -222,7 +187,6 @@ export default function AdminReservationsPage() {
       .catch(console.error)
       .finally(() => setLoadingCommandes(false));
 
-<<<<<<< HEAD
     // Fidélité — lookup par email client, puis extraction de la personne concernée
     fetch(`/api/fidelite?clientEmail=${encodeURIComponent(detailRdv.clientEmail)}`)
       .then(r => r.json())
@@ -234,14 +198,6 @@ export default function AdminReservationsPage() {
         } else {
           setDetailFidelite(null);
         }
-=======
-    // Fidélité — lookup par email client
-    fetch(`/api/fidelite?clientEmail=${encodeURIComponent(detailRdv.clientEmail)}`)
-      .then(r => r.json())
-      .then(d => {
-        if (d && typeof d.totalValidees === 'number') setDetailFidelite(d);
-        else                                          setDetailFidelite(null);
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
       })
       .catch(console.error);
   }, [detailRdv?._id]);
@@ -319,14 +275,11 @@ export default function AdminReservationsPage() {
     return new Set(day?.heures ?? []);
   };
 
-<<<<<<< HEAD
   const getAdminBlockedForDay = (dateStr: string): Set<string> => {
     const day = blocked.find(b => toDateStr(new Date(b.date)) === dateStr);
     return new Set(day?.adminHeures ?? []);
   };
 
-=======
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   // Slot map pour un jour donné
   const buildSlotMap = (dateStr: string) => {
     const dayRdvs = getRdvsForDay(dateStr);
@@ -369,7 +322,6 @@ export default function AdminReservationsPage() {
         setBlocked(prev => {
           const others = prev.filter(b => toDateStr(new Date(b.date)) !== dateStr);
           if (data.heures.length > 0) {
-<<<<<<< HEAD
             others.push({ date: `${dateStr}T00:00:00`, heures: data.heures, adminHeures: data.adminHeures || [] });
           }
           return others;
@@ -417,12 +369,6 @@ export default function AdminReservationsPage() {
       } else {
         const data = await res.json();
         if (data.error) alert(data.error);
-=======
-            others.push({ date: `${dateStr}T00:00:00`, heures: data.heures });
-          }
-          return others;
-        });
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
       }
     } catch (err) {
       console.error(err);
@@ -473,7 +419,6 @@ export default function AdminReservationsPage() {
     }
   };
 
-<<<<<<< HEAD
   // ─── Annuler une réservation (avec motif + notifications) ─────────────────
   const annulerRdv = async (id: string, motif: string) => {
     try {
@@ -507,15 +452,6 @@ export default function AdminReservationsPage() {
       }
     } catch (err) {
       console.error(err);
-=======
-  // ─── Supprimer une réservation ────────────────────────────────────────────
-  const supprimer = async (id: string) => {
-    if (!confirm('Supprimer cette réservation ?')) return;
-    const res = await fetch(`/api/reservations/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      setRdvs(prev => prev.filter(r => r._id !== id));
-      if (detailRdv?._id === id) setDetailRdv(null);
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     }
   };
 
@@ -559,15 +495,11 @@ export default function AdminReservationsPage() {
           fetch(`/api/fidelite?clientEmail=${encodeURIComponent(detailRdv.clientEmail)}`)
             .then(r => r.json())
             .then(d => {
-<<<<<<< HEAD
               if (d?.personnes && Array.isArray(d.personnes) && d.personnes.length > 0) {
                 const pourQui = detailRdv.pourQui || 'moi';
                 const exact = d.personnes.find((p: FidelitePersonne) => p.pourQui === pourQui);
                 setDetailFidelite(exact ?? d.personnes[0]);
               }
-=======
-              if (d && typeof d.totalValidees === 'number') setDetailFidelite(d);
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
             })
             .catch(console.error);
         }
@@ -661,11 +593,7 @@ export default function AdminReservationsPage() {
   // ─── Indicateurs par jour ─────────────────────────────────────────────────
   const rdvCountByDay = new Map<string, number>();
   for (const r of rdvs) {
-<<<<<<< HEAD
     if (r.statut === 'annule' || r.statut === 'absent') continue;
-=======
-    if (r.statut === 'annule') continue;
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     const ds = toDateStr(new Date(r.date));
     rdvCountByDay.set(ds, (rdvCountByDay.get(ds) ?? 0) + 1);
   }
@@ -744,7 +672,6 @@ export default function AdminReservationsPage() {
     const jourNum = dateObj.getDate();
     const moisNom = MOIS[dateObj.getMonth()];
 
-<<<<<<< HEAD
     const dayRdvs        = getRdvsForDay(selectedDate);
     const blockedSet     = getBlockedForDay(selectedDate);
     const adminBlocked   = getAdminBlockedForDay(selectedDate);
@@ -783,21 +710,6 @@ export default function AdminReservationsPage() {
               </button>
             )
           )}
-=======
-    const dayRdvs    = getRdvsForDay(selectedDate);
-    const blockedSet = getBlockedForDay(selectedDate);
-    const { slotMap, continuationSlots, continuationMap } = buildSlotMap(selectedDate);
-
-    return (
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="font-body text-base font-semibold text-gray-900">
-            {jourSemaine} {jourNum} {moisNom} {dateObj.getFullYear()}
-          </h2>
-          <p className="font-body text-xs text-gray-400 mt-0.5">
-            {dayRdvs.length} réservation{dayRdvs.length !== 1 ? 's' : ''} · {blockedSet.size} créneau{blockedSet.size !== 1 ? 'x' : ''} bloqué{blockedSet.size !== 1 ? 's' : ''}
-          </p>
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
         </div>
 
         <div className="divide-y divide-gray-50">
@@ -809,11 +721,7 @@ export default function AdminReservationsPage() {
             const selected       = selectionMode && isSelected(selectedDate, slot);
 
             const contRdv    = continuationMap.get(slot);
-<<<<<<< HEAD
             const isValidated = (rdv?.prestationValidee ?? contRdv?.prestationValidee) === true || (rdv?.statut ?? contRdv?.statut) === 'absent';
-=======
-            const isValidated = (rdv?.prestationValidee ?? contRdv?.prestationValidee) === true;
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 
             return (
               <div
@@ -865,25 +773,18 @@ export default function AdminReservationsPage() {
                           <AlertTriangle size={12} />
                         </span>
                       )}
-<<<<<<< HEAD
                       {isValidated && rdv.statut !== 'absent' && (
-=======
-                      {isValidated && (
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                         <span className="inline-flex items-center gap-1 font-body text-[10px] font-semibold uppercase tracking-wider
                           text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
                           <Check size={10} /> Terminée
                         </span>
                       )}
-<<<<<<< HEAD
                       {rdv.statut === 'absent' && (
                         <span className="inline-flex items-center gap-1 font-body text-[10px] font-semibold uppercase tracking-wider
                           text-gray-500 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">
                           <UserX size={10} /> Absent
                         </span>
                       )}
-=======
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                     </div>
                   )}
                   {isContinuation && !rdv && (
@@ -892,12 +793,9 @@ export default function AdminReservationsPage() {
                   {isBlocked && !isOccupied && (
                     <span className="font-body text-xs text-gray-400 flex items-center gap-1">
                       <Lock size={10} /> Indisponible
-<<<<<<< HEAD
                       {!isAdmin && adminBlocked.has(slot) && (
                         <span className="text-[10px] text-gray-300 ml-1">(gérant)</span>
                       )}
-=======
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                     </span>
                   )}
                 </div>
@@ -915,21 +813,14 @@ export default function AdminReservationsPage() {
                           <Eye size={14} />
                         </button>
                         <button
-<<<<<<< HEAD
                           onClick={(e) => { e.stopPropagation(); setDetailRdv(rdv); setShowCancelModal(true); setCancelMotif(''); }}
                           className="text-gray-300 hover:text-red-400 transition-colors"
                           title="Annuler le RDV"
-=======
-                          onClick={(e) => { e.stopPropagation(); supprimer(rdv._id); }}
-                          className="text-gray-300 hover:text-red-400 transition-colors"
-                          title="Supprimer"
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                         >
                           <Trash2 size={14} />
                         </button>
                       </>
                     )}
-<<<<<<< HEAD
                     {!isOccupied && (() => {
                       const lockedByAdmin = !isAdmin && isBlocked && adminBlocked.has(slot);
                       return lockedByAdmin ? (
@@ -949,20 +840,6 @@ export default function AdminReservationsPage() {
                         </button>
                       );
                     })()}
-=======
-                    {!isOccupied && (
-                      <button
-                        onClick={() => toggleBlock(selectedDate, slot)}
-                        className={`transition-colors ${isBlocked
-                          ? 'text-gray-400 hover:text-green-500'
-                          : 'text-gray-200 hover:text-gray-500'
-                        }`}
-                        title={isBlocked ? 'Débloquer' : 'Bloquer'}
-                      >
-                        {isBlocked ? <Unlock size={14} /> : <Lock size={14} />}
-                      </button>
-                    )}
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                   </div>
                 )}
               </div>
@@ -1026,12 +903,8 @@ export default function AdminReservationsPage() {
                   </td>
                   {weekDates.map(dateStr => {
                     const { slotMap, continuationSlots, continuationMap } = buildSlotMap(dateStr);
-<<<<<<< HEAD
                     const blockedSet    = getBlockedForDay(dateStr);
                     const adminBlkWeek  = getAdminBlockedForDay(dateStr);
-=======
-                    const blockedSet = getBlockedForDay(dateStr);
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                     const rdv            = slotMap.get(slot);
                     const isContinuation = continuationSlots.has(slot);
                     const isBlocked      = blockedSet.has(slot);
@@ -1064,16 +937,12 @@ export default function AdminReservationsPage() {
                             <div className="font-body text-[8px] text-gray-400 tabular-nums truncate leading-tight">
                               #{rdv.numero}
                             </div>
-<<<<<<< HEAD
                             {rdv.statut === 'absent' ? (
                               <div className="inline-flex items-center gap-0.5 font-body text-[8px] font-semibold uppercase tracking-wider
                                 text-gray-500 bg-gray-100 border border-gray-200 px-1 py-0 rounded-full leading-tight">
                                 <UserX size={7} /> Absent
                               </div>
                             ) : isValidated ? (
-=======
-                            {isValidated ? (
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                               <div className="inline-flex items-center gap-0.5 font-body text-[8px] font-semibold uppercase tracking-wider
                                 text-green-700 bg-green-50 border border-green-200 px-1 py-0 rounded-full leading-tight">
                                 <Check size={7} /> Terminée
@@ -1089,11 +958,7 @@ export default function AdminReservationsPage() {
                           <span className={`font-body text-[9px] ${isValidated ? 'text-gray-400/60' : 'text-yellow-500/50'}`}>·</span>
                         )}
                         {isBlocked && !isOccupied && (
-<<<<<<< HEAD
                           <Lock size={10} className={`mx-auto ${!isAdmin && adminBlkWeek.has(slot) ? 'text-red-300' : 'text-gray-300'}`} />
-=======
-                          <Lock size={10} className="mx-auto text-gray-300" />
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                         )}
                         {selectionMode && !isOccupied && selected && (
                           <CheckSquare size={12} className="mx-auto text-blue-400" />
@@ -1119,12 +984,8 @@ export default function AdminReservationsPage() {
     const heure = `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
 
     return (
-<<<<<<< HEAD
       <>
       <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => { setDetailRdv(null); setShowConfirmValid(false); }}>
-=======
-      <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setDetailRdv(null)}>
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
         <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
@@ -1186,11 +1047,7 @@ export default function AdminReservationsPage() {
                     <div className="flex items-center gap-1.5">
                       <Gift size={13} className="text-yellow-600" />
                       <span className="font-body text-[10px] font-bold uppercase tracking-wider text-yellow-800">
-<<<<<<< HEAD
                         Fidélité {detailFidelite.pourQui && detailFidelite.pourQui !== 'moi' ? `— ${detailFidelite.label}` : ''}
-=======
-                        Fidélité
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                       </span>
                     </div>
                     <span className="font-body text-[10px] text-yellow-700">
@@ -1305,11 +1162,7 @@ export default function AdminReservationsPage() {
                         className="flex-1 font-body text-xs border border-gray-200 rounded px-2 py-1.5 bg-white outline-none focus:border-yellow-400"
                       >
                         <option value="">Ajouter une prestation...</option>
-<<<<<<< HEAD
                         {Array.from(new Set(allPrestations.map(p => p.categorie).filter(Boolean))).map(cat => {
-=======
-                        {PRESTA_CATEGORIES.map(cat => {
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                           const items = allPrestations.filter(
                             p => p.categorie === cat && !draftPrestations.includes(p.nom)
                           );
@@ -1445,7 +1298,6 @@ export default function AdminReservationsPage() {
           {/* Actions */}
           <div className="px-6 py-4 border-t border-gray-100 space-y-2">
             {/* Valider la prestation : action principale */}
-<<<<<<< HEAD
             {/* Statut absent */}
             {rdv.statut === 'absent' && (
               <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
@@ -1457,28 +1309,15 @@ export default function AdminReservationsPage() {
             {!rdv.prestationValidee && rdv.statut !== 'annule' && rdv.statut !== 'absent' && (
               <button
                 onClick={() => setShowConfirmValid(true)}
-=======
-            {!rdv.prestationValidee && rdv.statut !== 'annule' && (
-              <button
-                onClick={() => validerPrestation(rdv._id)}
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                 className="w-full flex items-center justify-center gap-2 font-body text-sm font-semibold
                   bg-green-500 text-white rounded-lg px-4 py-2.5
                   hover:bg-green-600 transition-colors"
               >
-<<<<<<< HEAD
                 <Check size={14} /> Procéder au paiement
               </button>
             )}
 
             {!rdv.prestationValidee && rdv.statut !== 'annule' && rdv.statut !== 'absent' && (
-=======
-                <Check size={14} /> Valider : effectuée et payée
-              </button>
-            )}
-
-            {!rdv.prestationValidee && (
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
               <div className="flex gap-3">
                 {rdv.statut === 'a-venir' && !rdv.retardSignale && (
                   <button
@@ -1491,7 +1330,6 @@ export default function AdminReservationsPage() {
                   </button>
                 )}
                 <button
-<<<<<<< HEAD
                   onClick={() => marquerAbsent(rdv._id)}
                   className="flex-1 flex items-center justify-center gap-2 font-body text-sm font-medium
                     bg-gray-50 text-gray-600 border border-gray-200 rounded-lg px-4 py-2.5
@@ -1501,9 +1339,6 @@ export default function AdminReservationsPage() {
                 </button>
                 <button
                   onClick={() => { setShowCancelModal(true); setCancelMotif(''); }}
-=======
-                  onClick={() => supprimer(rdv._id)}
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                   className="flex-1 flex items-center justify-center gap-2 font-body text-sm font-medium
                     bg-red-50 text-red-600 border border-red-200 rounded-lg px-4 py-2.5
                     hover:bg-red-100 transition-colors"
@@ -1515,7 +1350,6 @@ export default function AdminReservationsPage() {
           </div>
         </div>
       </div>
-<<<<<<< HEAD
 
       {/* ── Confirmation de validation/paiement ── */}
       {showConfirmValid && (() => {
@@ -1647,8 +1481,6 @@ export default function AdminReservationsPage() {
         </div>
       )}
       </>
-=======
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     );
   };
 

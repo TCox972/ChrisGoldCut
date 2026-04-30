@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import ClosedDay from '@/models/ClosedDay';
-<<<<<<< HEAD
 import Reservation from '@/models/Reservation';
 import { requireAdmin } from '@/lib/auth';
 import { notifyCancellation } from '@/lib/notifications';
-=======
-import { requireAdmin } from '@/lib/auth';
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 
 // ─── GET /api/closed-days?month=2026-04 ─────────────────────────────────────
 export async function GET(req: NextRequest) {
@@ -32,13 +28,8 @@ export async function GET(req: NextRequest) {
 }
 
 // ─── POST /api/closed-days ──────────────────────────────────────────────────
-<<<<<<< HEAD
 // Body: { date: "2026-04-10", motif: "Jour férié" }
 // Fermer un jour : annule tous les RDV à venir et notifie les clients
-=======
-// Body: { date: "2026-04-10", motif?: "Jour férié" }
-// Toggle : ajoute ou supprime le jour de fermeture
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 export async function POST(req: NextRequest) {
   const { error } = await requireAdmin();
   if (error) return error;
@@ -50,17 +41,13 @@ export async function POST(req: NextRequest) {
     if (!dateStr) {
       return NextResponse.json({ error: 'Date requise.' }, { status: 400 });
     }
-<<<<<<< HEAD
     if (!motif?.trim()) {
       return NextResponse.json({ error: 'Motif requis.' }, { status: 400 });
     }
-=======
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 
     const dayStart = new Date(`${dateStr}T00:00:00`);
     const dayEnd   = new Date(`${dateStr}T23:59:59`);
 
-<<<<<<< HEAD
     // Vérifier si déjà fermé
     const existing = await ClosedDay.findOne({
       date: { $gte: dayStart, $lte: dayEnd },
@@ -103,25 +90,11 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ ...doc.toObject(), cancelledCount: rdvs.length }, { status: 201 });
-=======
-    const existing = await ClosedDay.findOne({
-      date: { $gte: dayStart, $lte: dayEnd },
-    });
-
-    if (existing) {
-      await ClosedDay.findByIdAndDelete(existing._id);
-      return NextResponse.json({ removed: true });
-    }
-
-    const doc = await ClosedDay.create({ date: dayStart, motif: motif ?? '' });
-    return NextResponse.json(doc, { status: 201 });
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   } catch (err) {
     console.error('[POST /api/closed-days]', err);
     return NextResponse.json({ error: 'Erreur serveur.' }, { status: 500 });
   }
 }
-<<<<<<< HEAD
 
 // ─── DELETE /api/closed-days ────────────────────────────────────────────────
 // Body: { date: "2026-04-10" }
@@ -156,5 +129,3 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Erreur serveur.' }, { status: 500 });
   }
 }
-=======
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272

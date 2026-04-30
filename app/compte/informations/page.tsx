@@ -3,11 +3,7 @@
 import { useState, useEffect } from 'react';
 import CompteNav from '@/components/public/CompteNav';
 import { useAuth } from '@/lib/auth-context';
-<<<<<<< HEAD
 import { User, Users, Edit3, Save, Plus, Trash2, Loader2, Lock, Eye, EyeOff } from 'lucide-react';
-=======
-import { User, Users, Edit3, Save, Plus, Trash2, Loader2 } from 'lucide-react';
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 
 type UserData = {
   prenom: string; nom: string; email: string; telephone: string;
@@ -21,7 +17,6 @@ export default function InformationsPage() {
   const [saving,  setSaving]  = useState(false);
   const [draft,   setDraft]   = useState<UserData | null>(null);
 
-<<<<<<< HEAD
   // Changement de mot de passe
   const [showPwdForm, setShowPwdForm] = useState(false);
   const [currentPwd,  setCurrentPwd]  = useState('');
@@ -32,8 +27,6 @@ export default function InformationsPage() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew,     setShowNew]     = useState(false);
 
-=======
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   // Charge le profil complet depuis l'API (attend que la session soit prête)
   useEffect(() => {
     if (authLoading || !user) return;
@@ -63,7 +56,6 @@ export default function InformationsPage() {
     setSaving(false);
   };
 
-<<<<<<< HEAD
   const changePassword = async () => {
     setPwdMsg(null);
     if (!currentPwd || !newPwd) {
@@ -100,8 +92,6 @@ export default function InformationsPage() {
     }
   };
 
-=======
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   const removeOther = (idx: number) =>
     setDraft(d => d ? { ...d, autresPersonnes: d.autresPersonnes.filter((_, i) => i !== idx) } : d);
 
@@ -170,7 +160,6 @@ export default function InformationsPage() {
         </div>
       </div>
 
-<<<<<<< HEAD
       {/* Mot de passe */}
       <div className="bg-white rounded-lg p-8 mb-6">
         <div className="flex items-center justify-between">
@@ -254,14 +243,6 @@ export default function InformationsPage() {
         <p className="font-body text-xs text-gray-400 mb-4">
           Ajoutez vos proches pour réserver à leur nom. Chaque personne dispose de sa propre fidélité.
         </p>
-=======
-      {/* Autres personnes */}
-      <div className="bg-white rounded-lg p-8">
-        <div className="flex items-center gap-3 mb-6">
-          <Users size={18} className="text-gray-500" />
-          <h2 className="font-body text-base font-semibold text-gray-900">Autres personnes</h2>
-        </div>
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
         <table className="w-full max-w-lg">
           <thead>
             <tr className="border-b border-gray-100">
@@ -308,23 +289,16 @@ export default function InformationsPage() {
             ))}
           </tbody>
         </table>
-<<<<<<< HEAD
         {editing && (editing ? draft! : data).autresPersonnes.length < 3 && (
-=======
-        {editing && (
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
           <button onClick={addOther} className="flex items-center gap-2 mt-4 text-gray-400 hover:text-gray-700 transition-colors">
             <Plus size={14} /><span className="font-body text-sm">Ajouter une personne</span>
           </button>
         )}
-<<<<<<< HEAD
         {editing && (editing ? draft! : data).autresPersonnes.length >= 3 && (
           <p className="font-body text-xs text-yellow-600 mt-4">
             Nombre maximum de personnes atteint (3).
           </p>
         )}
-=======
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
       </div>
     </div>
   );

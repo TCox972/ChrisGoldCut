@@ -5,19 +5,14 @@ import Reservation from '@/models/Reservation';
 import { requireAdmin } from '@/lib/auth';
 
 // ─── GET /api/clients ─────────────────────────────────────────────────────────
-<<<<<<< HEAD
 // Admin uniquement — liste tous les clients avec stats enrichies.
 // Query : ?q=<recherche> (nom, prénom ou téléphone)
-=======
-// Admin uniquement — liste tous les clients avec leur dernière réservation
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 export async function GET(req: NextRequest) {
   const { error } = await requireAdmin();
   if (error) return error;
 
   try {
     await connectDB();
-<<<<<<< HEAD
     const { searchParams } = new URL(req.url);
     const q = searchParams.get('q')?.trim();
 
@@ -33,15 +28,10 @@ export async function GET(req: NextRequest) {
     }
 
     const clients = await User.find(filter)
-=======
-
-    const clients = await User.find({ role: 'client' })
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
       .select('-password')
       .sort({ createdAt: -1 })
       .lean();
 
-<<<<<<< HEAD
     // Toutes les réservations validées pour les stats (batch, pas N+1)
     const clientIds = clients.map(c => c._id);
     const allRdvs = await Reservation.find({
@@ -115,19 +105,6 @@ export async function GET(req: NextRequest) {
         frequenceMoyenneJours,
       };
     });
-=======
-    // Enrichir avec la dernière réservation de chaque client
-    const enriched = await Promise.all(
-      clients.map(async (client) => {
-        const lastRdv = await Reservation.findOne({ userId: client._id })
-          .sort({ date: -1 })
-          .select('date statut prestations')
-          .lean();
-
-        return { ...client, derniereReservation: lastRdv ?? null };
-      })
-    );
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 
     return NextResponse.json(enriched);
   } catch (err) {

@@ -3,10 +3,7 @@ import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
 import Reservation from '@/models/Reservation';
 import { requireAdmin } from '@/lib/auth';
-<<<<<<< HEAD
 import mongoose from 'mongoose';
-=======
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 
 type Params = { params: { id: string } };
 
@@ -31,7 +28,6 @@ export async function GET(_req: NextRequest, { params }: Params) {
   }
 }
 
-<<<<<<< HEAD
 // ─── PATCH /api/clients/[id] ─────────────────────────────────────────────────
 // Permet de blacklister / dé-blacklister un client.
 // Body : { blackliste: boolean }
@@ -72,8 +68,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   }
 }
 
-=======
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 // ─── DELETE /api/clients/[id] ─────────────────────────────────────────────────
 export async function DELETE(_req: NextRequest, { params }: Params) {
   const { error } = await requireAdmin();

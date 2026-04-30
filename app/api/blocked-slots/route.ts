@@ -84,17 +84,13 @@ export async function POST(req: NextRequest) {
 
     let doc = await BlockedSlot.findOne(query);
 
-<<<<<<< HEAD
     const isAdmin = user.role === 'admin';
 
-=======
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     if (!doc) {
       doc = await BlockedSlot.create({
         date: dayStart,
         heures: [heure],
         employeId: effectiveEmployeId,
-<<<<<<< HEAD
         adminHeures: isAdmin ? [heure] : [],
       });
     } else if (doc.heures.includes(heure)) {
@@ -113,20 +109,11 @@ export async function POST(req: NextRequest) {
       if (doc.heures.length === 0) {
         await BlockedSlot.findByIdAndDelete(doc._id);
         return NextResponse.json({ heures: [], adminHeures: [], employeId: effectiveEmployeId });
-=======
-      });
-    } else if (doc.heures.includes(heure)) {
-      doc.heures = doc.heures.filter(h => h !== heure);
-      if (doc.heures.length === 0) {
-        await BlockedSlot.findByIdAndDelete(doc._id);
-        return NextResponse.json({ heures: [], employeId: effectiveEmployeId });
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
       }
       await doc.save();
     } else {
       doc.heures.push(heure);
       doc.heures.sort();
-<<<<<<< HEAD
       if (isAdmin) {
         doc.adminHeures = doc.adminHeures || [];
         doc.adminHeures.push(heure);
@@ -136,12 +123,6 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ heures: doc.heures, adminHeures: doc.adminHeures || [], employeId: effectiveEmployeId });
-=======
-      await doc.save();
-    }
-
-    return NextResponse.json({ heures: doc.heures, employeId: effectiveEmployeId });
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   } catch (err) {
     console.error('[POST /api/blocked-slots]', err);
     return NextResponse.json({ error: 'Erreur serveur.' }, { status: 500 });

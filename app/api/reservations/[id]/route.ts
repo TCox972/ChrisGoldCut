@@ -6,10 +6,7 @@ import ClosedDay from '@/models/ClosedDay';
 import Prestation from '@/models/Prestation';
 import { requireAuth } from '@/lib/auth';
 import { dateToSlot, generateAllSlots, getOccupiedSlots, isSlotAvailable, parseDuree } from '@/lib/slots';
-<<<<<<< HEAD
 import { notifyCancellation, notifyDelay } from '@/lib/notifications';
-=======
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 
 type Params = { params: { id: string } };
 
@@ -125,7 +122,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 });
     }
 
-<<<<<<< HEAD
     // ── Marquer absent (staff) ───────────────────────────────────────────
     if (body.statut === 'absent') {
       rdv.statut = 'absent';
@@ -134,8 +130,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       return NextResponse.json(fresh ?? rdv);
     }
 
-=======
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     // ── Champs booléens : retardSignale / prestationValidee ───────────────
     // On contourne Mongoose (bug de cache de schéma en HMR dev qui peut
     // silencieusement ignorer les nouveaux champs) en utilisant le driver natif.
@@ -143,7 +137,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (typeof body.retardSignale === 'boolean') {
       rdv.retardSignale = body.retardSignale;
       nativeSet.retardSignale = body.retardSignale;
-<<<<<<< HEAD
 
       // Envoyer un SMS au client pour l'informer du retard
       if (body.retardSignale) {
@@ -158,8 +151,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           pourQui: rdv.pourQui,
         });
       }
-=======
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     }
     if (typeof body.prestationValidee === 'boolean') {
       const wasValidee = rdv.prestationValidee === true;
@@ -169,26 +160,16 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         rdv.statut = 'termine';
         nativeSet.statut = 'termine';
 
-<<<<<<< HEAD
         // ── Fidélité par bénéficiaire (pourQui) : on compte les
         // prestations validées pour la même personne (même userId +
         // même pourQui). La 6ème (12ème, etc.) déclenche la prime.
-=======
-        // ── Fidélité : si c'est une nouvelle validation et qu'un userId
-        // existe, on compte les autres prestations déjà validées de ce
-        // client. Si cette validation devient la 6ème (ou 12ème, etc.),
-        // on fige la prime de 10€ sur ce RDV.
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
         if (!wasValidee && rdv.userId) {
           const PALIER = 6;
           const REWARD_EUR = 10;
           const otherCount = await Reservation.countDocuments({
             _id:               { $ne: rdv._id },
             userId:            rdv.userId,
-<<<<<<< HEAD
             pourQui:           rdv.pourQui || 'moi',
-=======
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
             prestationValidee: true,
           });
           if ((otherCount + 1) % PALIER === 0) {
@@ -291,7 +272,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       }
     }
 
-<<<<<<< HEAD
     // ── Annulation par le staff avec motif → notifications ──────────────
     if (body.statut === 'annule' && body.motifAnnulation) {
       nativeSet.motifAnnulation = body.motifAnnulation;
@@ -307,8 +287,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       }, body.motifAnnulation);
     }
 
-=======
->>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     await rdv.save();
 
     // Relecture via driver natif pour garantir la présence des champs
