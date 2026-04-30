@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Loader2, X, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, X, AlertTriangle } from 'lucide-react';
 
 type ClosedDay = { _id: string; date: string; motif: string };
 
@@ -15,6 +15,12 @@ function toMonthStr(y: number, m: number): string {
   return `${y}-${String(m + 1).padStart(2, '0')}`;
 }
 
+function formatDateFr(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  const jours = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+  return `${jours[d.getDay()]} ${d.getDate()} ${MOIS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 export default function AdminFermeturesPage() {
   const today = toDateStr(new Date());
 
@@ -25,7 +31,12 @@ export default function AdminFermeturesPage() {
 
   const [closedDays, setClosedDays] = useState<ClosedDay[]>([]);
   const [loading, setLoading]       = useState(true);
-  const [motif, setMotif]           = useState('');
+
+  // Modal de confirmation
+  const [modalDate, setModalDate]     = useState<string | null>(null);
+  const [modalMotif, setModalMotif]   = useState('');
+  const [submitting, setSubmitting]   = useState(false);
+  const [modalError, setModalError]   = useState('');
 
   // Charger les fermetures du mois
   useEffect(() => {
@@ -40,18 +51,54 @@ export default function AdminFermeturesPage() {
 
   const closedSet = new Set(closedDays.map(d => toDateStr(new Date(d.date))));
 
-  const toggleDay = async (dateStr: string) => {
+  // Ouvrir la modale de confirmation pour fermer un jour
+  const handleDayClick = (dateStr: string) => {
+    if (closedSet.has(dateStr)) return; // déjà fermé, on ne fait rien ici
+    setModalDate(dateStr);
+    setModalMotif('');
+    setModalError('');
+  };
+
+  // Confirmer la fermeture
+  const confirmClose = async () => {
+    if (!modalDate) return;
+    if (!modalMotif.trim()) {
+      setModalError('Veuillez saisir un motif de fermeture.');
+      return;
+    }
+    setSubmitting(true);
+    setModalError('');
     try {
       const res = await fetch('/api/closed-days', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: dateStr, motif }),
+        body: JSON.stringify({ date: modalDate, motif: modalMotif.trim() }),
       });
       const data = await res.json();
-      if (data.removed) {
+      if (!res.ok) {
+        setModalError(data.error || 'Erreur lors de la fermeture.');
+        return;
+      }
+      setClosedDays(prev => [...prev, data]);
+      setModalDate(null);
+    } catch (err) {
+      console.error(err);
+      setModalError('Erreur réseau.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Réouvrir un jour
+  const reopenDay = async (dateStr: string) => {
+    try {
+      const res = await fetch('/api/closed-days', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: dateStr }),
+      });
+      if (res.ok) {
         setClosedDays(prev => prev.filter(d => toDateStr(new Date(d.date)) !== dateStr));
-      } else {
-        setClosedDays(prev => [...prev, data]);
       }
     } catch (err) {
       console.error(err);
@@ -88,15 +135,15 @@ export default function AdminFermeturesPage() {
       cells.push(
         <button
           key={d}
-          onClick={() => toggleDay(dateStr)}
+          onClick={() => isClosed ? undefined : handleDayClick(dateStr)}
           className={`relative w-12 h-12 rounded-lg text-sm font-body transition-colors
             ${isClosed
-              ? 'bg-red-100 text-red-700 font-bold border-2 border-red-300'
+              ? 'bg-red-100 text-red-700 font-bold border-2 border-red-300 cursor-default'
               : isToday
-                ? 'ring-2 ring-yellow-400 text-gray-900 font-semibold hover:bg-gray-100'
+                ? 'ring-2 ring-yellow-400 text-gray-900 font-semibold hover:bg-gray-100 cursor-pointer'
                 : isPast
-                  ? 'text-gray-300'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  ? 'text-gray-300 cursor-pointer'
+                  : 'text-gray-600 hover:bg-gray-100 cursor-pointer'
             }`}
         >
           {d}
@@ -136,20 +183,8 @@ export default function AdminFermeturesPage() {
     <div>
       <h1 className="font-body text-2xl font-bold text-gray-900 mb-2">Jours de fermeture</h1>
       <p className="font-body text-sm text-gray-400 mb-6">
-        Cliquez sur un jour pour le marquer comme fermé (ou le réouvrir). Les créneaux seront automatiquement indisponibles.
+        Cliquez sur un jour pour le marquer comme fermé. Les rendez-vous existants seront automatiquement annulés et les clients notifiés par e-mail.
       </p>
-
-      {/* Motif */}
-      <div className="mb-6">
-        <label className="font-body text-xs text-gray-500 mb-1.5 block">Motif (optionnel)</label>
-        <input
-          value={motif}
-          onChange={e => setMotif(e.target.value)}
-          placeholder="Ex: Jour férié, Congés, Inventaire..."
-          className="w-full max-w-sm border border-gray-200 rounded-lg px-3 py-2 font-body text-sm
-            focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
-        />
-      </div>
 
       {loading ? (
         <div className="flex items-center gap-2 text-gray-400 py-12">
@@ -185,7 +220,7 @@ export default function AdminFermeturesPage() {
                           )}
                         </div>
                         <button
-                          onClick={() => toggleDay(toDateStr(d))}
+                          onClick={() => reopenDay(toDateStr(d))}
                           className="text-red-300 hover:text-red-500 transition-colors"
                           title="Réouvrir"
                         >
@@ -196,6 +231,69 @@ export default function AdminFermeturesPage() {
                   })}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Modale de confirmation de fermeture ── */}
+      {modalDate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={() => !submitting && setModalDate(null)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6"
+            onClick={e => e.stopPropagation()}>
+
+            {/* Icone + titre */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle size={20} className="text-red-500" />
+              </div>
+              <div>
+                <h3 className="font-body text-lg font-bold text-gray-900">Confirmer la fermeture</h3>
+                <p className="font-body text-sm text-gray-500">{formatDateFr(modalDate)}</p>
+              </div>
+            </div>
+
+            <p className="font-body text-sm text-gray-600 mb-4">
+              Tous les rendez-vous prévus ce jour seront <strong className="text-red-600">annulés</strong> et
+              les clients recevront un e-mail d&apos;annulation avec le motif indiqué.
+            </p>
+
+            {/* Motif (obligatoire) */}
+            <label className="font-body text-xs text-gray-500 mb-1.5 block font-semibold">
+              Motif de fermeture <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={modalMotif}
+              onChange={e => { setModalMotif(e.target.value); setModalError(''); }}
+              placeholder="Ex: Jour férié, Congés annuels, Inventaire..."
+              rows={3}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 font-body text-sm mb-1
+                focus:outline-none focus:ring-2 focus:ring-red-300 resize-none"
+              autoFocus
+            />
+            {modalError && (
+              <p className="font-body text-xs text-red-500 mb-3">{modalError}</p>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-3 mt-4">
+              <button
+                onClick={() => setModalDate(null)}
+                disabled={submitting}
+                className="font-body text-sm text-gray-500 hover:text-gray-800 px-4 py-2 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={confirmClose}
+                disabled={submitting}
+                className="flex items-center gap-2 bg-red-500 text-white font-body text-sm font-semibold
+                  px-5 py-2.5 rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
+              >
+                {submitting && <Loader2 size={14} className="animate-spin" />}
+                Confirmer la fermeture
+              </button>
+            </div>
           </div>
         </div>
       )}

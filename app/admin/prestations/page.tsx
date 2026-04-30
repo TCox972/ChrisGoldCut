@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Edit3, Trash2, Plus, Check, X, Loader2 } from 'lucide-react';
+import { Edit3, Trash2, Plus, Check, X, Loader2, ChevronUp, ChevronDown, Filter, GripVertical } from 'lucide-react';
 import CategorySelect from '@/components/ui/CategorySelect';
 
 type Prestation = {
@@ -23,7 +23,15 @@ export default function AdminPrestationsPage() {
   const [editId,  setEditId]  = useState<string | null>(null);
   const [draft,   setDraft]   = useState<Draft>(EMPTY_DRAFT);
   const [saving,  setSaving]  = useState(false);
-  const [adding,  setAdding]  = useState(false); // mode "nouvelle ligne"
+  const [adding,  setAdding]  = useState(false);
+
+  // Filtre par catégorie
+  const [filterCat, setFilterCat] = useState<string>('');
+
+  // Ordre des catégories
+  const [catOrder, setCatOrder]     = useState<string[]>([]);
+  const [showOrder, setShowOrder]   = useState(false);
+  const [savingOrder, setSavingOrder] = useState(false);
 
   // Catégories existantes, dérivées de la liste courante
   const availableCategories = useMemo(
@@ -31,11 +39,34 @@ export default function AdminPrestationsPage() {
     [items],
   );
 
+  // Catégories ordonnées (celles dans catOrder d'abord, puis les nouvelles)
+  const orderedCategories = useMemo(() => {
+    const inOrder = catOrder.filter(c => availableCategories.includes(c));
+    const rest = availableCategories.filter(c => !catOrder.includes(c));
+    return [...inOrder, ...rest];
+  }, [catOrder, availableCategories]);
+
+  // Items filtrés
+  const displayedItems = useMemo(() => {
+    const filtered = filterCat ? items.filter(i => i.categorie === filterCat) : items;
+    // Trier par ordre de catégorie
+    return [...filtered].sort((a, b) => {
+      const ia = orderedCategories.indexOf(a.categorie);
+      const ib = orderedCategories.indexOf(b.categorie);
+      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+    });
+  }, [items, filterCat, orderedCategories]);
+
   // ─── Chargement ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    fetch('/api/prestations?all=true') // all=true → inclut les inactives pour l'admin
-      .then(r => r.json())
-      .then(d => setItems(Array.isArray(d) ? d : []))
+    Promise.all([
+      fetch('/api/prestations?all=true').then(r => r.json()),
+      fetch('/api/category-order?type=prestations').then(r => r.json()),
+    ])
+      .then(([prestas, orderData]) => {
+        setItems(Array.isArray(prestas) ? prestas : []);
+        setCatOrder(Array.isArray(orderData?.order) ? orderData.order : []);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
@@ -107,10 +138,112 @@ export default function AdminPrestationsPage() {
     if (res.ok) setItems(prev => prev.filter(p => p._id !== id));
   };
 
+  // ─── Réordonnement des catégories ─────────────────────────────────────────
+  const moveCategory = (index: number, direction: -1 | 1) => {
+    const newOrder = [...orderedCategories];
+    const target = index + direction;
+    if (target < 0 || target >= newOrder.length) return;
+    [newOrder[index], newOrder[target]] = [newOrder[target], newOrder[index]];
+    setCatOrder(newOrder);
+  };
+
+  const saveCategoryOrder = async () => {
+    setSavingOrder(true);
+    try {
+      await fetch('/api/category-order', {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ type: 'prestations', order: orderedCategories }),
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingOrder(false);
+      setShowOrder(false);
+    }
+  };
+
   // ─── Render ─────────────────────────────────────────────────────────────────
   return (
     <div>
-      <h1 className="font-body text-2xl font-bold text-gray-900 mb-6">Prestations</h1>
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+        <h1 className="font-body text-2xl font-bold text-gray-900">Prestations</h1>
+        <div className="flex items-center gap-3">
+          {/* Filtre catégorie */}
+          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5">
+            <Filter size={14} className="text-gray-400" />
+            <select
+              value={filterCat}
+              onChange={e => setFilterCat(e.target.value)}
+              className="font-body text-sm text-gray-700 outline-none bg-transparent"
+            >
+              <option value="">Toutes les catégories</option>
+              {orderedCategories.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Bouton ordre des catégories */}
+          <button
+            onClick={() => setShowOrder(!showOrder)}
+            className={`flex items-center gap-2 font-body text-xs font-semibold px-4 py-2 rounded-lg transition-colors
+              ${showOrder
+                ? 'bg-yellow-400 text-gray-900'
+                : 'bg-white text-gray-600 border border-gray-200 hover:border-yellow-300'}`}
+          >
+            <GripVertical size={14} /> Ordre des catégories
+          </button>
+        </div>
+      </div>
+
+      {/* Panel de réordonnement */}
+      {showOrder && (
+        <div className="bg-white rounded-lg border border-yellow-200 p-4 mb-6">
+          <p className="font-body text-xs text-gray-500 mb-3">
+            Réorganisez l'ordre d'affichage des catégories sur la vitrine du site :
+          </p>
+          <div className="space-y-1">
+            {orderedCategories.map((cat, i) => (
+              <div key={cat} className="flex items-center gap-3 bg-gray-50 rounded px-3 py-2">
+                <GripVertical size={14} className="text-gray-300" />
+                <span className="font-body text-sm text-gray-900 flex-1">{cat}</span>
+                <button
+                  onClick={() => moveCategory(i, -1)}
+                  disabled={i === 0}
+                  className="text-gray-400 hover:text-gray-700 disabled:opacity-20 transition-colors"
+                >
+                  <ChevronUp size={16} />
+                </button>
+                <button
+                  onClick={() => moveCategory(i, 1)}
+                  disabled={i === orderedCategories.length - 1}
+                  className="text-gray-400 hover:text-gray-700 disabled:opacity-20 transition-colors"
+                >
+                  <ChevronDown size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 mt-3">
+            <button
+              onClick={() => setShowOrder(false)}
+              className="font-body text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={saveCategoryOrder}
+              disabled={savingOrder}
+              className="flex items-center gap-2 font-body text-xs font-semibold bg-yellow-400 text-gray-900 px-4 py-1.5 rounded
+                hover:bg-yellow-500 transition-colors disabled:opacity-50"
+            >
+              {savingOrder ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+              Enregistrer l'ordre
+            </button>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center gap-2 text-gray-400 py-12">
@@ -129,7 +262,7 @@ export default function AdminPrestationsPage() {
             <tbody className="divide-y divide-gray-50">
 
               {/* ── Lignes existantes ── */}
-              {items.map(item => {
+              {displayedItems.map(item => {
                 const isEditing = editId === item._id;
                 return (
                   <tr key={item._id} className={`hover:bg-gray-50 transition-colors ${!item.actif ? 'opacity-40' : ''}`}>

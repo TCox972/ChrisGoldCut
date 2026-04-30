@@ -25,13 +25,16 @@ type Rdv = {
   createdAt: string;
 };
 
-type Fidelite = {
+type FidelitePersonne = {
+  pourQui:                 string;
+  label:                   string;
   totalValidees:           number;
   cycleCount:              number;
   reservationsUntilReward: number;
   palier:                  number;
   rewardEur:               number;
 };
+type Fidelite = FidelitePersonne;
 
 type BlockedDay = { date: string; heures: string[]; adminHeures?: string[]; employeId?: string | null };
 type StaffMember = { _id: string; prenom: string; nom: string; role: string };
@@ -184,12 +187,17 @@ export default function AdminReservationsPage() {
       .catch(console.error)
       .finally(() => setLoadingCommandes(false));
 
-    // Fidélité — lookup par email client
+    // Fidélité — lookup par email client, puis extraction de la personne concernée
     fetch(`/api/fidelite?clientEmail=${encodeURIComponent(detailRdv.clientEmail)}`)
       .then(r => r.json())
       .then(d => {
-        if (d && typeof d.totalValidees === 'number') setDetailFidelite(d);
-        else                                          setDetailFidelite(null);
+        if (d?.personnes && Array.isArray(d.personnes) && d.personnes.length > 0) {
+          const pourQui = detailRdv.pourQui || 'moi';
+          const exact = d.personnes.find((p: FidelitePersonne) => p.pourQui === pourQui);
+          setDetailFidelite(exact ?? d.personnes[0]);
+        } else {
+          setDetailFidelite(null);
+        }
       })
       .catch(console.error);
   }, [detailRdv?._id]);
@@ -487,7 +495,11 @@ export default function AdminReservationsPage() {
           fetch(`/api/fidelite?clientEmail=${encodeURIComponent(detailRdv.clientEmail)}`)
             .then(r => r.json())
             .then(d => {
-              if (d && typeof d.totalValidees === 'number') setDetailFidelite(d);
+              if (d?.personnes && Array.isArray(d.personnes) && d.personnes.length > 0) {
+                const pourQui = detailRdv.pourQui || 'moi';
+                const exact = d.personnes.find((p: FidelitePersonne) => p.pourQui === pourQui);
+                setDetailFidelite(exact ?? d.personnes[0]);
+              }
             })
             .catch(console.error);
         }
@@ -1035,7 +1047,7 @@ export default function AdminReservationsPage() {
                     <div className="flex items-center gap-1.5">
                       <Gift size={13} className="text-yellow-600" />
                       <span className="font-body text-[10px] font-bold uppercase tracking-wider text-yellow-800">
-                        Fidélité
+                        Fidélité {detailFidelite.pourQui && detailFidelite.pourQui !== 'moi' ? `— ${detailFidelite.label}` : ''}
                       </span>
                     </div>
                     <span className="font-body text-[10px] text-yellow-700">

@@ -37,6 +37,14 @@ export async function PUT(req: NextRequest) {
       if (body[key] !== undefined) update[key] = body[key];
     }
 
+    // Max 3 personnes supplémentaires
+    if (Array.isArray(update.autresPersonnes) && update.autresPersonnes.length > 3) {
+      return NextResponse.json(
+        { error: 'Vous pouvez ajouter 3 personnes supplémentaires maximum.' },
+        { status: 400 },
+      );
+    }
+
     const updated = await User.findByIdAndUpdate(
       (session!.user as any).id,
       { $set: update },

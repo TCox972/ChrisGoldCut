@@ -27,6 +27,7 @@ function toProduitCart(p: Produit) {
 
 export default function BoutiquePage() {
   const [allProduits, setAllProduits] = useState<Produit[]>([]);
+  const [catOrder,    setCatOrder]    = useState<string[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState('');
   const [active,      setActive]      = useState<string>('');
@@ -37,19 +38,26 @@ export default function BoutiquePage() {
   useEffect(() => {
     setLoading(true);
     setError('');
-    fetch('/api/produits')
-      .then(r => {
+    Promise.all([
+      fetch('/api/produits').then(r => {
         if (!r.ok) throw new Error(`Erreur ${r.status}`);
         return r.json();
+      }),
+      fetch('/api/category-order?type=produits').then(r => r.json()).catch(() => ({ order: [] })),
+    ])
+      .then(([data, orderData]) => {
+        setAllProduits(Array.isArray(data) ? data : []);
+        setCatOrder(Array.isArray(orderData?.order) ? orderData.order : []);
       })
-      .then((data: Produit[]) => setAllProduits(Array.isArray(data) ? data : []))
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
 
-  // Catégories dynamiques + onglet "Tout"
+  // Catégories dynamiques triées selon l'ordre admin + onglet "Tout"
+  const allCats = Array.from(new Set(allProduits.map(p => p.categorie).filter(Boolean)));
   const categories: string[] = [
-    ...Array.from(new Set(allProduits.map(p => p.categorie).filter(Boolean))),
+    ...catOrder.filter(c => allCats.includes(c)),
+    ...allCats.filter(c => !catOrder.includes(c)),
     'Tout',
   ];
 
@@ -129,30 +137,35 @@ export default function BoutiquePage() {
                 const qty = getQty(p._id);
                 return (
                   <div key={p._id} className="relative rounded overflow-hidden group bg-gray-900">
-                    {/* Image */}
+                    {/* Image — cliquable vers la fiche produit */}
                     <div className="relative h-52 overflow-hidden">
-                      <div
+                      <Link href={`/boutique/${p._id}`}
                         className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
                         style={{ backgroundImage: `url(${p.image || 'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=400&q=80'})` }}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent pointer-events-none" />
 
                       {/* Stock faible */}
                       {p.stock > 0 && p.stock <= 3 && (
-                        <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded">
+                        <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded pointer-events-none">
                           Plus que {p.stock} !
                         </div>
                       )}
                       {p.stock === 0 && (
-                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                        <Link
+                          href={`/boutique/${p._id}`}
+                          className="absolute inset-0 bg-black/60 flex items-center justify-center"
+                        >
                           <span className="font-display text-white text-xs tracking-widest uppercase">Rupture de stock</span>
-                        </div>
+                        </Link>
                       )}
 
                       {/* Nom + prix + bouton */}
                       <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
                         <div>
-                          <p className="font-body text-sm font-semibold text-white">{p.nom}</p>
+                          <Link href={`/boutique/${p._id}`} className="font-body text-sm font-semibold text-white hover:text-yellow-300 transition-colors">
+                            {p.nom}
+                          </Link>
                           <p className="font-body text-xs text-white/60 mt-0.5">{p.description}</p>
                           <p className="font-body text-xs text-yellow-400 font-bold mt-1">{p.prix.toFixed(2)} €</p>
                         </div>

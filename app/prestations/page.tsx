@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import PageHero from '@/components/layout/PageHero';
-import SectionTitle from '@/components/ui/SectionTitle';
 import ReservationForm from '@/components/public/ReservationForm';
 import { Loader2 } from 'lucide-react';
 
@@ -18,23 +17,33 @@ type Prestation = {
 
 export default function PrestationsPage() {
   const [prestations, setPrestations] = useState<Prestation[]>([]);
+  const [catOrder,    setCatOrder]    = useState<string[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState('');
 
   // ─── Chargement depuis l'API ────────────────────────────────────────────────
   useEffect(() => {
-    fetch('/api/prestations')
-      .then(r => {
+    Promise.all([
+      fetch('/api/prestations').then(r => {
         if (!r.ok) throw new Error(`Erreur ${r.status}`);
         return r.json();
+      }),
+      fetch('/api/category-order?type=prestations').then(r => r.json()).catch(() => ({ order: [] })),
+    ])
+      .then(([data, orderData]) => {
+        setPrestations(Array.isArray(data) ? data : []);
+        setCatOrder(Array.isArray(orderData?.order) ? orderData.order : []);
       })
-      .then((data: Prestation[]) => setPrestations(Array.isArray(data) ? data : []))
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
 
-  // Catégories dans l'ordre d'apparition des prestations chargées
-  const categories = Array.from(new Set(prestations.map(p => p.categorie).filter(Boolean)));
+  // Catégories triées selon l'ordre défini par l'admin
+  const allCats = Array.from(new Set(prestations.map(p => p.categorie).filter(Boolean)));
+  const categories = [
+    ...catOrder.filter(c => allCats.includes(c)),
+    ...allCats.filter(c => !catOrder.includes(c)),
+  ];
 
   return (
     <main>

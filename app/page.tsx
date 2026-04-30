@@ -135,7 +135,7 @@ export default function HomePage() {
           </div>
           <div className="flex items-center justify-center gap-10 mt-6">
             {marques.map((m, i) => (
-              <span key={i} className="font-display text-xs tracking-[0.2em] uppercase text-gray-400 border border-gray-200 px-4 py-2 rounded">
+              <span key={i} className="font-display font-bold text-sm tracking-[0.2em] uppercase text-gray-600 border border-gray-200 px-8 py-4 rounded">
                 {m}
               </span>
             ))}

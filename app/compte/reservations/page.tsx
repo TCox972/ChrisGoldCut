@@ -11,6 +11,7 @@ type Rdv = {
   _id: string;
   numero: string;
   clientNom: string;
+  pourQui?: string;
   prestations: string[];
   dureeMinutes: number;
   date: string;
@@ -24,7 +25,9 @@ type Rdv = {
 type StaffMember = { _id: string; prenom: string; nom: string };
 type Slot = { heure: string; disponible: boolean };
 
-type Fidelite = {
+type FidelitePersonne = {
+  pourQui:                 string;
+  label:                   string;
   totalValidees:           number;
   cycleCount:              number;
   reservationsUntilReward: number;
@@ -56,7 +59,7 @@ export default function MesReservationsPage() {
   const [rdvs,      setRdvs]     = useState<Rdv[]>([]);
   const [staff,     setStaff]    = useState<StaffMember[]>([]);
   const [loading,   setLoading]  = useState(true);
-  const [fidelite,  setFidelite] = useState<Fidelite | null>(null);
+  const [fidelitePersonnes, setFidelitePersonnes] = useState<FidelitePersonne[]>([]);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [editRdv,   setEditRdv]   = useState<Rdv | null>(null);
   const [tab,       setTab]       = useState<Tab>('a-venir');
@@ -65,15 +68,15 @@ export default function MesReservationsPage() {
   useEffect(() => {
     if (authLoading || !user) return;
     Promise.all([
-      fetch('/api/reservations').then(r => r.json()),
+      fetch('/api/reservations?view=client').then(r => r.json()),
       fetch('/api/staff').then(r => r.json()),
       fetch('/api/fidelite').then(r => r.json()),
     ])
       .then(([rdvData, staffData, fideliteData]) => {
         setRdvs(Array.isArray(rdvData) ? rdvData : []);
         setStaff(Array.isArray(staffData) ? staffData : []);
-        if (fideliteData && typeof fideliteData.totalValidees === 'number') {
-          setFidelite(fideliteData);
+        if (fideliteData?.personnes && Array.isArray(fideliteData.personnes)) {
+          setFidelitePersonnes(fideliteData.personnes);
         }
       })
       .catch(console.error)
@@ -118,53 +121,56 @@ export default function MesReservationsPage() {
       <CompteNav />
       <h1 className="font-display text-2xl font-bold tracking-[0.15em] uppercase text-white mb-6">Mes réservations</h1>
 
-      {/* ── Carte fidélité ─────────────────────────────────────────────────── */}
-      {fidelite && (() => {
-        const { cycleCount, reservationsUntilReward, palier, rewardEur } = fidelite;
-        const rewardReady = cycleCount === 0 && fidelite.totalValidees > 0;
-        return (
-          <div className="mb-6 rounded-lg border border-yellow-400/30 bg-gradient-to-br from-yellow-400/10 to-yellow-400/[0.02] p-5">
-            <div className="flex items-center justify-between gap-4 mb-3">
-              <div className="flex items-center gap-2">
-                <Gift size={16} className="text-yellow-400" />
-                <span className="font-display text-xs tracking-[0.2em] uppercase text-yellow-400 font-bold">
-                  Fidélité
-                </span>
+      {/* ── Cartes fidélité par personne ─────────────────────────────────── */}
+      {fidelitePersonnes.length > 0 && (
+        <div className="mb-6 space-y-3">
+          {fidelitePersonnes.map(fp => {
+            const rewardReady = fp.cycleCount === 0 && fp.totalValidees > 0;
+            return (
+              <div key={fp.pourQui}
+                className="rounded-lg border border-yellow-400/30 bg-gradient-to-br from-yellow-400/10 to-yellow-400/[0.02] p-5">
+                <div className="flex items-center justify-between gap-4 mb-3">
+                  <div className="flex items-center gap-2">
+                    <Gift size={16} className="text-yellow-400" />
+                    <span className="font-display text-xs tracking-[0.2em] uppercase text-yellow-400 font-bold">
+                      {fp.label}
+                    </span>
+                  </div>
+                  <span className="font-body text-[11px] text-white/50">
+                    {rewardReady
+                      ? `Prime de ${fp.rewardEur} € disponible sur le prochain RDV`
+                      : `Plus que ${fp.reservationsUntilReward} RDV${fp.reservationsUntilReward > 1 ? 's' : ''} avant ${fp.rewardEur} € offerts`}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: fp.palier }).map((_, i) => {
+                    const filled = i < fp.cycleCount;
+                    const isReward = i === fp.palier - 1;
+                    return (
+                      <div
+                        key={i}
+                        className={`flex-1 h-2 rounded-full transition-colors
+                          ${filled
+                            ? 'bg-yellow-400'
+                            : isReward
+                              ? 'bg-white/10 border border-yellow-400/40'
+                              : 'bg-white/10'}`}
+                        title={isReward ? `Récompense : ${fp.rewardEur} €` : `RDV ${i + 1}`}
+                      />
+                    );
+                  })}
+                </div>
+
+                <p className="font-body text-[11px] text-white/40 mt-3">
+                  {fp.totalValidees} prestation{fp.totalValidees > 1 ? 's' : ''} validée{fp.totalValidees > 1 ? 's' : ''} ·
+                  1 RDV offert toutes les {fp.palier} prestations
+                </p>
               </div>
-              <span className="font-body text-[11px] text-white/50">
-                {rewardReady
-                  ? `Prime de ${rewardEur} € disponible sur votre prochain RDV validé`
-                  : `Plus que ${reservationsUntilReward} RDV${reservationsUntilReward > 1 ? 's' : ''} avant ${rewardEur} € offerts`}
-              </span>
-            </div>
-
-            {/* Jauge : `palier` pastilles — les remplies représentent cycleCount */}
-            <div className="flex items-center gap-2">
-              {Array.from({ length: palier }).map((_, i) => {
-                const filled = i < cycleCount;
-                const isReward = i === palier - 1;
-                return (
-                  <div
-                    key={i}
-                    className={`flex-1 h-2 rounded-full transition-colors
-                      ${filled
-                        ? 'bg-yellow-400'
-                        : isReward
-                          ? 'bg-white/10 border border-yellow-400/40'
-                          : 'bg-white/10'}`}
-                    title={isReward ? `Récompense : ${rewardEur} €` : `RDV ${i + 1}`}
-                  />
-                );
-              })}
-            </div>
-
-            <p className="font-body text-[11px] text-white/40 mt-3">
-              {fidelite.totalValidees} prestation{fidelite.totalValidees > 1 ? 's' : ''} validée{fidelite.totalValidees > 1 ? 's' : ''} ·
-              1 RDV offert toutes les {palier} prestations
-            </p>
-          </div>
-        );
-      })()}
+            );
+          })}
+        </div>
+      )}
 
       {/* Onglets À venir / Historique */}
       <div className="flex items-center gap-1 mb-4 border-b border-white/10">
@@ -216,8 +222,10 @@ export default function MesReservationsPage() {
                     N° {rdv.numero}
                   </p>
                   <p className="font-body text-sm">
-                    <span className="font-semibold text-gray-800">Client : </span>
-                    <span className="text-gray-600">{rdv.clientNom}</span>
+                    <span className="font-semibold text-gray-800">Pour : </span>
+                    <span className="text-gray-600">
+                      {rdv.pourQui && rdv.pourQui !== 'moi' ? rdv.pourQui : rdv.clientNom}
+                    </span>
                   </p>
                   <p className="font-body text-sm mt-1">
                     <span className="font-semibold text-gray-800">Prestations : </span>

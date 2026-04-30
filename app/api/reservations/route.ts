@@ -26,16 +26,22 @@ export async function GET(req: NextRequest) {
     const user       = session!.user as any;
 
     const filter: Record<string, unknown> = {};
+    const viewClient = searchParams.get('view') === 'client';
 
-    if (user.role === 'employe') {
-      // Un employé ne voit que ses réservations
+    if (viewClient) {
+      // Vue client : l'utilisateur veut voir ses propres RDV (même s'il est coiffeur)
+      filter.userId = user.id;
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      filter.date = { $gte: threeMonthsAgo };
+    } else if (user.role === 'employe') {
+      // Vue employé (admin) : RDV assignés à ce coiffeur
       filter.employeId = user.id;
     } else if (user.role === 'admin') {
       if (employeId) filter.employeId = employeId;
     } else {
-      // Client
+      // Client classique
       filter.userId = user.id;
-      // Masquer les RDV de plus de 3 mois (calculés depuis la date du RDV)
       const threeMonthsAgo = new Date();
       threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
       filter.date = { $gte: threeMonthsAgo };

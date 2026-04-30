@@ -160,16 +160,16 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         rdv.statut = 'termine';
         nativeSet.statut = 'termine';
 
-        // ── Fidélité : si c'est une nouvelle validation et qu'un userId
-        // existe, on compte les autres prestations déjà validées de ce
-        // client. Si cette validation devient la 6ème (ou 12ème, etc.),
-        // on fige la prime de 10€ sur ce RDV.
+        // ── Fidélité par bénéficiaire (pourQui) : on compte les
+        // prestations validées pour la même personne (même userId +
+        // même pourQui). La 6ème (12ème, etc.) déclenche la prime.
         if (!wasValidee && rdv.userId) {
           const PALIER = 6;
           const REWARD_EUR = 10;
           const otherCount = await Reservation.countDocuments({
             _id:               { $ne: rdv._id },
             userId:            rdv.userId,
+            pourQui:           rdv.pourQui || 'moi',
             prestationValidee: true,
           });
           if ((otherCount + 1) % PALIER === 0) {

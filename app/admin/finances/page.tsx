@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import {
   Loader2, TrendingUp, Target, CalendarDays, CheckCircle2, Clock,
-  ChevronLeft, ChevronRight, Pencil, Users,
+  ChevronLeft, ChevronRight, Pencil, Users, Download,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -192,6 +192,27 @@ export default function FinancesPage() {
     }
   };
 
+  // ─── Export Excel ──────────────────────────────────────────────────────────
+  const [exporting, setExporting] = useState(false);
+  const exportExcel = async () => {
+    setExporting(true);
+    try {
+      const res = await fetch(`/api/finances/export?month=${month}`);
+      if (!res.ok) throw new Error('Erreur export');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `GoldCut_Prestations_${formatMonth(month).replace(' ', '_')}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // ─── Render ───────────────────────────────────────────────────────────────
   if (authLoading) {
     return (
@@ -216,7 +237,18 @@ export default function FinancesPage() {
           </p>
         </div>
 
-        {/* Sélecteur de mois */}
+        {/* Sélecteur de mois + Export */}
+        <div className="flex items-center gap-3">
+        <button
+          onClick={exportExcel}
+          disabled={exporting || loading}
+          className="flex items-center gap-2 font-body text-xs font-semibold
+            bg-green-600 text-white px-4 py-2 rounded-lg
+            hover:bg-green-700 transition-colors disabled:opacity-50"
+        >
+          {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+          Exporter Excel
+        </button>
         <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-2 py-1">
           <button
             onClick={() => setMonth(m => shiftMonth(m, -1))}
@@ -243,6 +275,7 @@ export default function FinancesPage() {
               Ce mois
             </button>
           )}
+        </div>
         </div>
       </div>
 

@@ -231,10 +231,18 @@ export default function InformationsPage() {
 
       {/* Autres personnes */}
       <div className="bg-white rounded-lg p-8">
-        <div className="flex items-center gap-3 mb-6">
-          <Users size={18} className="text-gray-500" />
-          <h2 className="font-body text-base font-semibold text-gray-900">Autres personnes</h2>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <Users size={18} className="text-gray-500" />
+            <h2 className="font-body text-base font-semibold text-gray-900">Personnes supplémentaires</h2>
+          </div>
+          <span className="font-body text-xs text-gray-400">
+            {(editing ? draft! : data).autresPersonnes?.length || 0} / 3
+          </span>
         </div>
+        <p className="font-body text-xs text-gray-400 mb-4">
+          Ajoutez vos proches pour réserver à leur nom. Chaque personne dispose de sa propre fidélité.
+        </p>
         <table className="w-full max-w-lg">
           <thead>
             <tr className="border-b border-gray-100">
@@ -281,10 +289,15 @@ export default function InformationsPage() {
             ))}
           </tbody>
         </table>
-        {editing && (
+        {editing && (editing ? draft! : data).autresPersonnes.length < 3 && (
           <button onClick={addOther} className="flex items-center gap-2 mt-4 text-gray-400 hover:text-gray-700 transition-colors">
             <Plus size={14} /><span className="font-body text-sm">Ajouter une personne</span>
           </button>
+        )}
+        {editing && (editing ? draft! : data).autresPersonnes.length >= 3 && (
+          <p className="font-body text-xs text-yellow-600 mt-4">
+            Nombre maximum de personnes atteint (3).
+          </p>
         )}
       </div>
     </div>
