@@ -11,6 +11,7 @@ export interface IUser extends Document {
   role:      'client' | 'admin' | 'employe';
   /** Société (pour les employés) */
   societe:   string;
+<<<<<<< HEAD
   /** Objectif mensuel de chiffre d'affaires (employés et admin) — en euros */
   objectifMensuel: number;
   /** Client blacklisté — ne peut plus réserver en ligne */
@@ -18,6 +19,8 @@ export interface IUser extends Document {
   /** Token de réinitialisation du mot de passe */
   resetToken?: string;
   resetTokenExpiry?: Date;
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   /** Personnes rattachées au compte (enfants, proches) */
   autresPersonnes: { prenom: string; nom: string }[];
   createdAt: Date;
@@ -36,10 +39,13 @@ const UserSchema = new Schema<IUser>(
     password:  { type: String, required: true, minlength: 6 },
     role:      { type: String, enum: ['client', 'admin', 'employe'], default: 'client' },
     societe:   { type: String, default: '' },
+<<<<<<< HEAD
     objectifMensuel: { type: Number, default: 0, min: 0 },
     blackliste:      { type: Boolean, default: false },
     resetToken:      { type: String, default: undefined },
     resetTokenExpiry:{ type: Date,   default: undefined },
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     autresPersonnes: [
       {
         prenom: { type: String, required: true },

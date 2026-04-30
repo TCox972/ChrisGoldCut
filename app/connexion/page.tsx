@@ -1,6 +1,10 @@
 'use client';
 
+<<<<<<< HEAD
 import { useState, Suspense } from 'react';
+=======
+import { useState } from 'react';
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 import { useSearchParams } from 'next/navigation';
 import { getSession } from 'next-auth/react';
 import Navbar from '@/components/layout/Navbar';
@@ -15,6 +19,7 @@ const errorMessages: Record<string, string> = {
 };
 
 export default function ConnexionPage() {
+<<<<<<< HEAD
   return (
     <Suspense>
       <ConnexionContent />
@@ -23,6 +28,8 @@ export default function ConnexionPage() {
 }
 
 function ConnexionContent() {
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [error,    setError]    = useState('');
@@ -42,6 +49,7 @@ function ConnexionContent() {
     const ok = await login(email, password);
     setLoading(false);
 
+<<<<<<< HEAD
     if (ok) {
       const callbackUrl = searchParams.get('callbackUrl');
       if (callbackUrl) { window.location.href = callbackUrl; return; }
@@ -54,6 +62,20 @@ function ConnexionContent() {
         window.location.href = '/compte/informations';
       }
     }
+=======
+if (ok) {
+  const callbackUrl = searchParams.get('callbackUrl');
+  if (callbackUrl) { window.location.href = callbackUrl; return; }
+
+  try {
+    const session = await getSession();
+    const role = (session?.user as any)?.role;
+    window.location.href = (role === 'admin' || role === 'employe') ? '/admin/reservations' : '/compte/informations';
+  } catch {
+    window.location.href = '/compte/informations';
+  }
+}
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   };
 
   return (
@@ -93,10 +115,16 @@ function ConnexionContent() {
               </button>
             </form>
 
+<<<<<<< HEAD
             <Link href="/mot-de-passe-oublie"
               className="block text-center font-body text-xs text-white/40 mt-4 cursor-pointer hover:text-yellow-400 transition-colors">
               Mot de passe oublié ?
             </Link>
+=======
+            <p className="text-center font-body text-xs text-white/40 mt-4 cursor-pointer hover:text-yellow-400 transition-colors">
+              Mot de passe oublié ?
+            </p>
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 
             <div className="border-t border-white/10 mt-6 pt-6 text-center">
               <p className="font-body text-sm text-white/50 mb-2">Vous n'êtes pas encore des nôtres ?</p>

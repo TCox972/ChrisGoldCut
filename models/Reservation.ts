@@ -26,7 +26,11 @@ export interface IReservation extends Document {
   prestations:  string[];             // noms des prestations choisies
   dureeMinutes: number;              // durée totale en minutes
   date:         Date;                // date + heure du RDV
+<<<<<<< HEAD
   statut:      'a-venir' | 'termine' | 'annule' | 'absent';
+=======
+  statut:      'a-venir' | 'termine' | 'annule';
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   /** Produits commandés à récupérer lors du RDV */
   achats:      IArticleRdv[];
   totalAchats: number;
@@ -40,10 +44,13 @@ export interface IReservation extends Document {
    * (puis la 12ème, 18ème, etc.). Figée au moment de la validation.
    */
   fideliteReductionEur: number;
+<<<<<<< HEAD
   /** Rappel 24h envoyé */
   reminderSent: boolean;
   /** Motif d'annulation (renseigné par le salon) */
   motifAnnulation: string;
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   createdAt:   Date;
   updatedAt:   Date;
 }
@@ -74,7 +81,11 @@ const ReservationSchema = new Schema<IReservation>(
     date:         { type: Date, required: true },
     statut:      {
       type:    String,
+<<<<<<< HEAD
       enum:    ['a-venir', 'termine', 'annule', 'absent'],
+=======
+      enum:    ['a-venir', 'termine', 'annule'],
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
       default: 'a-venir',
     },
     achats:      [ArticleRdvSchema],
@@ -82,8 +93,11 @@ const ReservationSchema = new Schema<IReservation>(
     retardSignale:        { type: Boolean, default: false },
     prestationValidee:    { type: Boolean, default: false },
     fideliteReductionEur: { type: Number,  default: 0 },
+<<<<<<< HEAD
     reminderSent:         { type: Boolean, default: false },
     motifAnnulation:      { type: String,  default: '' },
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   },
   { timestamps: true }
 );

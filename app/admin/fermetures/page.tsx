@@ -1,7 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+<<<<<<< HEAD
 import { ChevronLeft, ChevronRight, Loader2, X, AlertTriangle } from 'lucide-react';
+=======
+import { ChevronLeft, ChevronRight, Loader2, X, Plus } from 'lucide-react';
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 
 type ClosedDay = { _id: string; date: string; motif: string };
 
@@ -15,12 +19,15 @@ function toMonthStr(y: number, m: number): string {
   return `${y}-${String(m + 1).padStart(2, '0')}`;
 }
 
+<<<<<<< HEAD
 function formatDateFr(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00');
   const jours = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
   return `${jours[d.getDay()]} ${d.getDate()} ${MOIS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 export default function AdminFermeturesPage() {
   const today = toDateStr(new Date());
 
@@ -31,12 +38,16 @@ export default function AdminFermeturesPage() {
 
   const [closedDays, setClosedDays] = useState<ClosedDay[]>([]);
   const [loading, setLoading]       = useState(true);
+<<<<<<< HEAD
 
   // Modal de confirmation
   const [modalDate, setModalDate]     = useState<string | null>(null);
   const [modalMotif, setModalMotif]   = useState('');
   const [submitting, setSubmitting]   = useState(false);
   const [modalError, setModalError]   = useState('');
+=======
+  const [motif, setMotif]           = useState('');
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 
   // Charger les fermetures du mois
   useEffect(() => {
@@ -51,6 +62,7 @@ export default function AdminFermeturesPage() {
 
   const closedSet = new Set(closedDays.map(d => toDateStr(new Date(d.date))));
 
+<<<<<<< HEAD
   // Ouvrir la modale de confirmation pour fermer un jour
   const handleDayClick = (dateStr: string) => {
     if (closedSet.has(dateStr)) return; // déjà fermé, on ne fait rien ici
@@ -68,10 +80,14 @@ export default function AdminFermeturesPage() {
     }
     setSubmitting(true);
     setModalError('');
+=======
+  const toggleDay = async (dateStr: string) => {
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     try {
       const res = await fetch('/api/closed-days', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+<<<<<<< HEAD
         body: JSON.stringify({ date: modalDate, motif: modalMotif.trim() }),
       });
       const data = await res.json();
@@ -99,6 +115,15 @@ export default function AdminFermeturesPage() {
       });
       if (res.ok) {
         setClosedDays(prev => prev.filter(d => toDateStr(new Date(d.date)) !== dateStr));
+=======
+        body: JSON.stringify({ date: dateStr, motif }),
+      });
+      const data = await res.json();
+      if (data.removed) {
+        setClosedDays(prev => prev.filter(d => toDateStr(new Date(d.date)) !== dateStr));
+      } else {
+        setClosedDays(prev => [...prev, data]);
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
       }
     } catch (err) {
       console.error(err);
@@ -135,6 +160,7 @@ export default function AdminFermeturesPage() {
       cells.push(
         <button
           key={d}
+<<<<<<< HEAD
           onClick={() => isClosed ? undefined : handleDayClick(dateStr)}
           className={`relative w-12 h-12 rounded-lg text-sm font-body transition-colors
             ${isClosed
@@ -144,6 +170,17 @@ export default function AdminFermeturesPage() {
                 : isPast
                   ? 'text-gray-300 cursor-pointer'
                   : 'text-gray-600 hover:bg-gray-100 cursor-pointer'
+=======
+          onClick={() => toggleDay(dateStr)}
+          className={`relative w-12 h-12 rounded-lg text-sm font-body transition-colors
+            ${isClosed
+              ? 'bg-red-100 text-red-700 font-bold border-2 border-red-300'
+              : isToday
+                ? 'ring-2 ring-yellow-400 text-gray-900 font-semibold hover:bg-gray-100'
+                : isPast
+                  ? 'text-gray-300'
+                  : 'text-gray-600 hover:bg-gray-100'
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
             }`}
         >
           {d}
@@ -183,9 +220,27 @@ export default function AdminFermeturesPage() {
     <div>
       <h1 className="font-body text-2xl font-bold text-gray-900 mb-2">Jours de fermeture</h1>
       <p className="font-body text-sm text-gray-400 mb-6">
+<<<<<<< HEAD
         Cliquez sur un jour pour le marquer comme fermé. Les rendez-vous existants seront automatiquement annulés et les clients notifiés par e-mail.
       </p>
 
+=======
+        Cliquez sur un jour pour le marquer comme fermé (ou le réouvrir). Les créneaux seront automatiquement indisponibles.
+      </p>
+
+      {/* Motif */}
+      <div className="mb-6">
+        <label className="font-body text-xs text-gray-500 mb-1.5 block">Motif (optionnel)</label>
+        <input
+          value={motif}
+          onChange={e => setMotif(e.target.value)}
+          placeholder="Ex: Jour férié, Congés, Inventaire..."
+          className="w-full max-w-sm border border-gray-200 rounded-lg px-3 py-2 font-body text-sm
+            focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+        />
+      </div>
+
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
       {loading ? (
         <div className="flex items-center gap-2 text-gray-400 py-12">
           <Loader2 size={18} className="animate-spin" /> Chargement...
@@ -220,7 +275,11 @@ export default function AdminFermeturesPage() {
                           )}
                         </div>
                         <button
+<<<<<<< HEAD
                           onClick={() => reopenDay(toDateStr(d))}
+=======
+                          onClick={() => toggleDay(toDateStr(d))}
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                           className="text-red-300 hover:text-red-500 transition-colors"
                           title="Réouvrir"
                         >
@@ -234,6 +293,7 @@ export default function AdminFermeturesPage() {
           </div>
         </div>
       )}
+<<<<<<< HEAD
 
       {/* ── Modale de confirmation de fermeture ── */}
       {modalDate && (
@@ -297,6 +357,8 @@ export default function AdminFermeturesPage() {
           </div>
         </div>
       )}
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     </div>
   );
 }

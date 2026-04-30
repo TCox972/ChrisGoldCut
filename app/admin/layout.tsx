@@ -3,13 +3,20 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+<<<<<<< HEAD
 import { Calendar, Scissors, Package, Users, UserCog, CalendarOff, LogOut, TrendingUp } from 'lucide-react';
+=======
+import { Calendar, Scissors, Package, Users, UserCog, CalendarOff, LogOut } from 'lucide-react';
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 
 type NavItem = { href: string; label: string; icon: any; adminOnly?: boolean };
 
 const navItems: NavItem[] = [
   { href: '/admin/reservations', label: 'Réservations', icon: Calendar },
+<<<<<<< HEAD
   { href: '/admin/finances',     label: 'Finances',     icon: TrendingUp },
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   { href: '/admin/employes',     label: 'Employés',     icon: UserCog,     adminOnly: true },
   { href: '/admin/fermetures',   label: 'Fermetures',   icon: CalendarOff, adminOnly: true },
   { href: '/admin/prestations',  label: 'Prestations',  icon: Scissors,    adminOnly: true },

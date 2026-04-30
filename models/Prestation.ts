@@ -1,7 +1,11 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface IPrestation extends Document {
+<<<<<<< HEAD
   categorie: string;
+=======
+  categorie: 'Coupes' | 'Dégradés' | 'Barbe' | 'Soins';
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   nom:       string;
   duree:     string;  // ex: "30 min", "1 h"
   prix:      number;
@@ -15,7 +19,11 @@ const PrestationSchema = new Schema<IPrestation>(
     categorie: {
       type:     String,
       required: true,
+<<<<<<< HEAD
       trim:     true,
+=======
+      enum:     ['Coupes', 'Dégradés', 'Barbe', 'Soins'],
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     },
     nom:   { type: String, required: true, trim: true },
     duree: { type: String, required: true },
@@ -27,6 +35,7 @@ const PrestationSchema = new Schema<IPrestation>(
 
 PrestationSchema.index({ categorie: 1, actif: 1 });
 
+<<<<<<< HEAD
 // En HMR, le modèle peut être déjà compilé avec un ancien schéma.
 // On met à jour le schéma du modèle existant si besoin.
 if (mongoose.models.Prestation) {
@@ -39,6 +48,8 @@ if (mongoose.models.Prestation) {
     ) ?? [];
   }
 }
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 const Prestation: Model<IPrestation> =
   mongoose.models.Prestation ??
   mongoose.model<IPrestation>('Prestation', PrestationSchema);

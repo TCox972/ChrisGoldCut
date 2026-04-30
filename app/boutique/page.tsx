@@ -11,7 +11,11 @@ import Link from 'next/link';
 
 type Produit = {
   _id:         string;
+<<<<<<< HEAD
   categorie:   string;
+=======
+  categorie:   'Barbe' | 'Cheveux' | 'Accessoires';
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   nom:         string;
   description: string;
   prix:        number;
@@ -20,12 +24,19 @@ type Produit = {
   actif:       boolean;
 };
 
+<<<<<<< HEAD
+=======
+type Categorie = 'Tout' | 'Barbe' | 'Cheveux' | 'Accessoires';
+const CATEGORIES: Categorie[] = ['Barbe', 'Cheveux', 'Accessoires', 'Tout'];
+
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 // Adaptateur : les items du panier utilisent produitId, on mappe _id → id pour useCart
 function toProduitCart(p: Produit) {
   return { id: p._id, categorie: p.categorie, nom: p.nom, description: p.description, prix: p.prix, image: p.image };
 }
 
 export default function BoutiquePage() {
+<<<<<<< HEAD
   const [allProduits, setAllProduits] = useState<Produit[]>([]);
   const [catOrder,    setCatOrder]    = useState<string[]>([]);
   const [loading,     setLoading]     = useState(true);
@@ -69,6 +80,33 @@ export default function BoutiquePage() {
   const produits = active === 'Tout' || !active
     ? allProduits
     : allProduits.filter(p => p.categorie === active);
+=======
+  const [produits, setProduits] = useState<Produit[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState('');
+  const [active,   setActive]   = useState<Categorie>('Barbe');
+
+  const { addItem, items, updateQuantite, totalItems, totalPrix } = useCart();
+
+  // ─── Chargement depuis l'API ────────────────────────────────────────────────
+  useEffect(() => {
+    const url = active === 'Tout'
+      ? '/api/produits'
+      : `/api/produits?categorie=${active}`;
+
+    setLoading(true);
+    setError('');
+
+    fetch(url)
+      .then(r => {
+        if (!r.ok) throw new Error(`Erreur ${r.status}`);
+        return r.json();
+      })
+      .then(data => setProduits(Array.isArray(data) ? data : []))
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [active]);
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 
   const getQty = (id: string) => items.find(i => i.produitId === id)?.quantite ?? 0;
 
@@ -86,7 +124,11 @@ export default function BoutiquePage() {
 
           {/* Onglets catégories */}
           <div className="flex border-b border-gray-200 mb-8">
+<<<<<<< HEAD
             {categories.map(c => (
+=======
+            {CATEGORIES.map(c => (
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
               <button
                 key={c}
                 onClick={() => setActive(c)}
@@ -137,6 +179,7 @@ export default function BoutiquePage() {
                 const qty = getQty(p._id);
                 return (
                   <div key={p._id} className="relative rounded overflow-hidden group bg-gray-900">
+<<<<<<< HEAD
                     {/* Image — cliquable vers la fiche produit */}
                     <div className="relative h-52 overflow-hidden">
                       <Link href={`/boutique/${p._id}`}
@@ -148,24 +191,47 @@ export default function BoutiquePage() {
                       {/* Stock faible */}
                       {p.stock > 0 && p.stock <= 3 && (
                         <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded pointer-events-none">
+=======
+                    {/* Image */}
+                    <div className="relative h-52 overflow-hidden">
+                      <div
+                        className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+                        style={{ backgroundImage: `url(${p.image || 'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=400&q=80'})` }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent" />
+
+                      {/* Stock faible */}
+                      {p.stock > 0 && p.stock <= 3 && (
+                        <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded">
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                           Plus que {p.stock} !
                         </div>
                       )}
                       {p.stock === 0 && (
+<<<<<<< HEAD
                         <Link
                           href={`/boutique/${p._id}`}
                           className="absolute inset-0 bg-black/60 flex items-center justify-center"
                         >
                           <span className="font-display text-white text-xs tracking-widest uppercase">Rupture de stock</span>
                         </Link>
+=======
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <span className="font-display text-white text-xs tracking-widest uppercase">Rupture de stock</span>
+                        </div>
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                       )}
 
                       {/* Nom + prix + bouton */}
                       <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
                         <div>
+<<<<<<< HEAD
                           <Link href={`/boutique/${p._id}`} className="font-body text-sm font-semibold text-white hover:text-yellow-300 transition-colors">
                             {p.nom}
                           </Link>
+=======
+                          <p className="font-body text-sm font-semibold text-white">{p.nom}</p>
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                           <p className="font-body text-xs text-white/60 mt-0.5">{p.description}</p>
                           <p className="font-body text-xs text-yellow-400 font-bold mt-1">{p.prix.toFixed(2)} €</p>
                         </div>

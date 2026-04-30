@@ -8,7 +8,10 @@ import User from '@/models/User';
 import { generateUniqueNumero } from '@/models/UsedNumero';
 import { requireAuth, getSession } from '@/lib/auth';
 import { getOccupiedSlots, isSlotAvailable, parseDuree, dateToSlot, generateAllSlots } from '@/lib/slots';
+<<<<<<< HEAD
 import { notifyBookingConfirmation } from '@/lib/notifications';
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 
 // ─── GET /api/reservations ─────────────────────────────────────────────────────
 // Params optionnels : statut, limit, month, employeId
@@ -26,6 +29,7 @@ export async function GET(req: NextRequest) {
     const user       = session!.user as any;
 
     const filter: Record<string, unknown> = {};
+<<<<<<< HEAD
     const viewClient = searchParams.get('view') === 'client';
 
     if (viewClient) {
@@ -36,12 +40,23 @@ export async function GET(req: NextRequest) {
       filter.date = { $gte: threeMonthsAgo };
     } else if (user.role === 'employe') {
       // Vue employé (admin) : RDV assignés à ce coiffeur
+=======
+
+    if (user.role === 'employe') {
+      // Un employé ne voit que ses réservations
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
       filter.employeId = user.id;
     } else if (user.role === 'admin') {
       if (employeId) filter.employeId = employeId;
     } else {
+<<<<<<< HEAD
       // Client classique
       filter.userId = user.id;
+=======
+      // Client
+      filter.userId = user.id;
+      // Masquer les RDV de plus de 3 mois (calculés depuis la date du RDV)
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
       const threeMonthsAgo = new Date();
       threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
       filter.date = { $gte: threeMonthsAgo };
@@ -88,6 +103,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+<<<<<<< HEAD
     // Vérifier si le client est blacklisté
     const clientUser = await User.findOne({ email: clientEmail.toLowerCase() }).select('blackliste').lean();
     if (clientUser?.blackliste) {
@@ -97,6 +113,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     const rdvDate = new Date(date);
     const slot    = dateToSlot(rdvDate);
 
@@ -224,6 +242,7 @@ export async function POST(req: NextRequest) {
       achats,
     });
 
+<<<<<<< HEAD
     // Envoi de l'email de confirmation (non bloquant)
     notifyBookingConfirmation({
       numero: reservation.numero,
@@ -236,6 +255,8 @@ export async function POST(req: NextRequest) {
       pourQui,
     });
 
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     return NextResponse.json(reservation, { status: 201 });
   } catch (err) {
     console.error('[POST /api/reservations]', err);

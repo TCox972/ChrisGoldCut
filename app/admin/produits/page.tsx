@@ -1,5 +1,6 @@
 'use client';
 
+<<<<<<< HEAD
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Edit3, Trash2, Plus, Check, X, Loader2, Ban, ChevronUp, ChevronDown, Filter, GripVertical, Upload, Image as ImageIcon } from 'lucide-react';
 import CategorySelect from '@/components/ui/CategorySelect';
@@ -11,6 +12,17 @@ type Produit = {
   prix: number; stock: number; actif: boolean;
   image: string; images?: string[];
 };
+=======
+import { useState, useEffect } from 'react';
+import { Edit3, Trash2, Plus, Check, X, Loader2, Ban } from 'lucide-react';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+type Produit = {
+  _id: string; categorie: 'Barbe' | 'Cheveux' | 'Accessoires';
+  nom: string; description: string; prix: number; stock: number; actif: boolean;
+};
+type Draft = Omit<Produit, '_id' | 'actif'>;
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 
 type CommandeAdmin = {
   _id: string; numero: string; clientNom: string; clientEmail: string;
@@ -18,12 +30,19 @@ type CommandeAdmin = {
   total: number; statut: 'en-attente' | 'annulee'; createdAt: string;
 };
 
+<<<<<<< HEAD
+=======
+const CATEGORIES = ['Barbe', 'Cheveux', 'Accessoires'] as const;
+const EMPTY: Draft = { categorie: 'Barbe', nom: '', description: '', prix: 0, stock: 0 };
+
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 export default function AdminProduitsPage() {
   const [tab,      setTab]      = useState<'liste' | 'achats'>('liste');
   const [produits, setProduits] = useState<Produit[]>([]);
   const [commandes,setCommandes]= useState<CommandeAdmin[]>([]);
   const [loadingP, setLoadingP] = useState(true);
   const [loadingC, setLoadingC] = useState(false);
+<<<<<<< HEAD
 
   // Filtre par catégorie
   const [filterCat, setFilterCat] = useState<string>('');
@@ -75,6 +94,18 @@ export default function AdminProduitsPage() {
         setProduits(Array.isArray(prods) ? prods : []);
         setCatOrder(Array.isArray(orderData?.order) ? orderData.order : []);
       })
+=======
+  const [editId,   setEditId]   = useState<string | null>(null);
+  const [draft,    setDraft]    = useState<Draft>(EMPTY);
+  const [saving,   setSaving]   = useState(false);
+  const [adding,   setAdding]   = useState(false);
+
+  // ─── Chargement produits ──────────────────────────────────────────────────
+  useEffect(() => {
+    fetch('/api/produits?all=true')
+      .then(r => r.json())
+      .then(d => setProduits(Array.isArray(d) ? d : []))
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
       .catch(console.error)
       .finally(() => setLoadingP(false));
   }, []);
@@ -90,6 +121,7 @@ export default function AdminProduitsPage() {
       .finally(() => setLoadingC(false));
   }, [tab]);
 
+<<<<<<< HEAD
   // ─── Modale : ouvrir en édition ───────────────────────────────────────────
   const openEdit = (p: Produit) => {
     setModalMode('edit');
@@ -199,13 +231,58 @@ export default function AdminProduitsPage() {
   };
 
   // ─── Suppression douce ────────────────────────────────────────────────────
+=======
+  const hDraft = (f: keyof Draft, v: string | number) =>
+    setDraft(d => ({ ...d, [f]: v }));
+
+  // ─── CRUD Produits ────────────────────────────────────────────────────────
+  const startEdit = (p: Produit) => {
+    setAdding(false);
+    setEditId(p._id);
+    setDraft({ categorie: p.categorie, nom: p.nom, description: p.description, prix: p.prix, stock: p.stock });
+  };
+  const cancelEdit = () => { setEditId(null); setAdding(false); };
+
+  const saveEdit = async () => {
+    if (!editId) return;
+    setSaving(true);
+    const res = await fetch(`/api/produits/${editId}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft),
+    });
+    if (res.ok) {
+      const u = await res.json();
+      setProduits(prev => prev.map(p => p._id === editId ? u : p));
+      setEditId(null);
+    }
+    setSaving(false);
+  };
+
+  const confirmAdd = async () => {
+    if (!draft.nom.trim()) return;
+    setSaving(true);
+    const res = await fetch('/api/produits', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft),
+    });
+    if (res.ok) {
+      const created = await res.json();
+      setProduits(prev => [...prev, created]);
+      setAdding(false);
+    }
+    setSaving(false);
+  };
+
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   const supprimer = async (id: string) => {
     if (!confirm('Désactiver ce produit ?')) return;
     const res = await fetch(`/api/produits/${id}`, { method: 'DELETE' });
     if (res.ok) setProduits(prev => prev.filter(p => p._id !== id));
   };
 
+<<<<<<< HEAD
   // ─── Annulation commande ──────────────────────────────────────────────────
+=======
+  // ─── Annulation commande (admin) ──────────────────────────────────────────
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   const annulerCommande = async (id: string) => {
     if (!confirm('Annuler cette réservation client ?')) return;
     const res = await fetch(`/api/commandes/${id}`, {
@@ -220,6 +297,7 @@ export default function AdminProduitsPage() {
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
 
+<<<<<<< HEAD
   // ─── Réordonnement des catégories ─────────────────────────────────────────
   const moveCategory = (index: number, direction: -1 | 1) => {
     const newOrder = [...orderedCategories];
@@ -294,6 +372,59 @@ export default function AdminProduitsPage() {
       )}
 
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+=======
+  // ─── Ligne d'édition réutilisable ─────────────────────────────────────────
+  const EditableTr = ({ isNew = false }) => (
+    <tr className={isNew ? 'bg-yellow-50' : 'bg-gray-50'}>
+      <td className="px-5 py-3">
+        <select value={draft.categorie} onChange={e => hDraft('categorie', e.target.value)}
+          className="border border-gray-200 rounded px-2 py-1.5 text-sm outline-none focus:border-yellow-400 bg-white">
+          {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+        </select>
+      </td>
+      <td className="px-5 py-3">
+        <input value={draft.nom} onChange={e => hDraft('nom', e.target.value)}
+          placeholder="Nom" autoFocus={isNew}
+          className="border border-gray-200 rounded px-2 py-1.5 text-sm outline-none focus:border-yellow-400 w-36" />
+      </td>
+      <td className="px-5 py-3">
+        <input value={draft.description} onChange={e => hDraft('description', e.target.value)}
+          placeholder="60 ml"
+          className="border border-gray-200 rounded px-2 py-1.5 text-sm outline-none focus:border-yellow-400 w-24" />
+      </td>
+      <td className="px-5 py-3">
+        <div className="flex items-center gap-1">
+          <input type="number" min="0" step="0.5" value={draft.prix}
+            onChange={e => hDraft('prix', parseFloat(e.target.value))}
+            className="border border-gray-200 rounded px-2 py-1.5 text-sm outline-none focus:border-yellow-400 w-16" />
+          <span className="text-gray-400 text-xs">€</span>
+        </div>
+      </td>
+      <td className="px-5 py-3">
+        <input type="number" min="0" value={draft.stock}
+          onChange={e => hDraft('stock', parseInt(e.target.value))}
+          className="border border-gray-200 rounded px-2 py-1.5 text-sm outline-none focus:border-yellow-400 w-16" />
+      </td>
+      <td className="px-5 py-3">
+        <div className="flex gap-2">
+          <button onClick={isNew ? confirmAdd : saveEdit}
+            disabled={saving || !draft.nom.trim()}
+            className="text-green-500 hover:text-green-700 disabled:opacity-40">
+            {saving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
+          </button>
+          <button onClick={cancelEdit} className="text-gray-300 hover:text-gray-600"><X size={15} /></button>
+        </div>
+      </td>
+    </tr>
+  );
+
+  return (
+    <div>
+      <h1 className="font-body text-2xl font-bold text-gray-900 mb-6">Produits</h1>
+
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
         {/* Onglets */}
         <div className="grid grid-cols-2 border-b border-gray-100">
           {(['liste', 'achats'] as const).map(t => (
@@ -316,12 +447,17 @@ export default function AdminProduitsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-50">
+<<<<<<< HEAD
                     {['Image', 'Catégorie', 'Désignation', 'Infos', 'Prix', 'Stock', ''].map(h => (
+=======
+                    {['Catégorie','Désignation','Infos','Prix','Stock',''].map(h => (
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                       <th key={h} className="font-body text-xs font-semibold text-gray-500 text-left px-5 py-4">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
+<<<<<<< HEAD
                   {displayedProduits.map(p => (
                     <tr key={p._id} className={`hover:bg-gray-50 transition-colors cursor-pointer ${!p.actif ? 'opacity-40' : ''}`}
                       onClick={() => openEdit(p)}>
@@ -354,12 +490,43 @@ export default function AdminProduitsPage() {
                       </td>
                     </tr>
                   ))}
+=======
+                  {produits.map(p => {
+                    if (editId === p._id) return <EditableTr key={p._id} />;
+                    return (
+                      <tr key={p._id} className={`hover:bg-gray-50 transition-colors ${!p.actif ? 'opacity-40' : ''}`}>
+                        <td className="px-5 py-3 font-body text-sm text-gray-600">{p.categorie}</td>
+                        <td className="px-5 py-3 font-body text-sm text-gray-900">{p.nom}</td>
+                        <td className="px-5 py-3 font-body text-sm text-gray-500">{p.description}</td>
+                        <td className="px-5 py-3 font-body text-sm text-gray-600">{p.prix} €</td>
+                        <td className="px-5 py-3">
+                          <span className={`font-body text-sm font-medium ${p.stock <= 3 ? 'text-red-500' : 'text-gray-600'}`}>
+                            {p.stock}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3">
+                          <div className="flex gap-2">
+                            <button onClick={() => startEdit(p)} className="text-gray-300 hover:text-yellow-500 transition-colors"><Edit3 size={15} /></button>
+                            <button onClick={() => supprimer(p._id)} className="text-gray-300 hover:text-red-400 transition-colors"><Trash2 size={15} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {adding && <EditableTr isNew />}
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                 </tbody>
               </table>
             )}
             <div className="px-5 py-4 border-t border-gray-100">
+<<<<<<< HEAD
               <button onClick={openAdd}
                 className="flex items-center gap-2 font-body text-sm text-gray-500 hover:text-gray-900 transition-colors">
+=======
+              <button onClick={() => { setEditId(null); setDraft(EMPTY); setAdding(true); }}
+                disabled={adding}
+                className="flex items-center gap-2 font-body text-sm text-gray-500 hover:text-gray-900 disabled:opacity-40">
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                 <Plus size={14} /> Ajouter un produit
               </button>
             </div>
@@ -420,13 +587,31 @@ export default function AdminProduitsPage() {
                           : allLivres
                             ? 'bg-green-50 text-green-700 border-green-200'
                             : 'bg-yellow-50 text-yellow-700 border-yellow-200'}`}>
+<<<<<<< HEAD
                         {cmd.statut === 'annulee' ? 'Annulée' : allLivres ? 'Livrée' : 'En attente'}
+=======
+                        {cmd.statut === 'annulee'
+                          ? 'Annulée'
+                          : allLivres
+                            ? 'Livrée'
+                            : 'En attente'}
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                       </span>
                     </td>
                     <td className="px-5 py-4">
                       {cmd.statut === 'en-attente' && (
+<<<<<<< HEAD
                         <button onClick={() => annulerCommande(cmd._id)} title="Annuler cette commande"
                           className="text-gray-300 hover:text-red-400 transition-colors"><Ban size={16} /></button>
+=======
+                        <button
+                          onClick={() => annulerCommande(cmd._id)}
+                          title="Annuler cette commande"
+                          className="text-gray-300 hover:text-red-400 transition-colors"
+                        >
+                          <Ban size={16} />
+                        </button>
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                       )}
                     </td>
                   </tr>
@@ -437,6 +622,7 @@ export default function AdminProduitsPage() {
           )
         )}
       </div>
+<<<<<<< HEAD
 
       {/* ═══════════════════════════════════════════════════════════════════════
           MODALE D'ÉDITION / AJOUT PRODUIT
@@ -567,6 +753,8 @@ export default function AdminProduitsPage() {
           </div>
         </div>
       )}
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     </div>
   );
 }

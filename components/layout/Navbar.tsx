@@ -47,7 +47,11 @@ export default function Navbar({ dark = true }: { dark?: boolean }) {
             <div className={`font-display text-lg font-black tracking-[0.15em] uppercase ${dark ? 'text-white' : 'text-gray-900'}`}>
               GOLD CUT
             </div>
+<<<<<<< HEAD
             <div className="font-script text-xs tracking-wider" style={{ color: '#D4A017' }}>By Christopher</div>
+=======
+            <div className="font-script text-xs tracking-wider" style={{ color: '#D4A017' }}>Gold-Cuts</div>
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
           </div>
         </Link>
 

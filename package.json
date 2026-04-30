@@ -11,17 +11,27 @@
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
+<<<<<<< HEAD
     "cloudinary": "^2.9.0",
     "clsx": "^2.1.1",
     "dotenv": "^17.4.1",
     "exceljs": "^4.4.0",
+=======
+    "clsx": "^2.1.1",
+    "dotenv": "^17.4.1",
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.383.0",
     "mongodb": "^7.1.1",
     "mongoose": "^8.5.1",
+<<<<<<< HEAD
     "next": "^14.2.35",
     "next-auth": "^4.24.7",
     "nodemailer": "^7.0.13",
+=======
+    "next": "14.2.5",
+    "next-auth": "^4.24.7",
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     "nodemon": "^3.1.14",
     "react": "^18",
     "react-dom": "^18"
@@ -31,12 +41,19 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20",
+<<<<<<< HEAD
     "@types/nodemailer": "^8.0.0",
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
     "eslint": "^8",
+<<<<<<< HEAD
     "eslint-config-next": "^14.2.35",
+=======
+    "eslint-config-next": "14.2.5",
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.16.2",

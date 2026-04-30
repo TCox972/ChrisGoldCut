@@ -1,7 +1,102 @@
+<<<<<<< HEAD
 import NextAuth from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 
 // Next.js App Router n'autorise que des exports précis ici (GET, POST…).
 // La configuration vit dans `lib/authOptions.ts`.
+=======
+import NextAuth, { type NextAuthOptions } from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import { connectDB } from '@/lib/mongodb';
+import User from '@/models/User';
+
+export const authOptions: NextAuthOptions = {
+  // ─── Providers ──────────────────────────────────────────────────────────────
+  providers: [
+    CredentialsProvider({
+      name: 'Credentials',
+      credentials: {
+        email:    { label: 'Email',          type: 'email'    },
+        password: { label: 'Mot de passe',   type: 'password' },
+      },
+
+      async authorize(credentials) {
+
+        console.log('🔑 Tentative connexion:', credentials?.email); 
+
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error('Email et mot de passe requis.');
+        }
+
+        await connectDB();
+
+        const user = await User.findOne({ email: credentials.email.toLowerCase() });
+
+        console.log('👤 User trouvé:', user ? 'OUI' : 'NON'); 
+        
+        if (!user) throw new Error('Aucun compte associé à cet email.');
+
+        const isValid = await user.comparePassword(credentials.password);
+        if (!isValid) throw new Error('Mot de passe incorrect.');
+
+        // L'objet retourné est encodé dans le JWT
+        return {
+          id:        user._id.toString(),
+          email:     user.email,
+          name:      `${user.prenom} ${user.nom}`.trim(),
+          prenom:    user.prenom,
+          role:      user.role,
+          telephone: user.telephone,
+        };
+      },
+    }),
+  ],
+
+  // ─── Session JWT ────────────────────────────────────────────────────────────
+  session: {
+    strategy: 'jwt',
+    maxAge:   30 * 24 * 60 * 60, // 30 jours
+  },
+
+  // ─── Callbacks ──────────────────────────────────────────────────────────────
+  callbacks: {
+    /** Enrichit le JWT avec les champs personnalisés */
+    async jwt({ token, user }) {
+      if (user) {
+        token.id        = (user as any).id;
+        token.role      = (user as any).role;
+        token.prenom    = (user as any).prenom;
+        token.telephone = (user as any).telephone;
+      }
+      return token;
+    },
+
+    /** Expose les champs JWT dans la session côté client */
+    async session({ session, token }) {
+      if (token && session.user) {
+        (session.user as any).id        = token.id;
+        (session.user as any).role      = token.role;
+        (session.user as any).prenom    = token.prenom;
+        (session.user as any).telephone = token.telephone;
+      }
+      return session;
+    },
+  },
+
+  // ─── Pages personnalisées ───────────────────────────────────────────────────
+  pages: {
+    signIn:   '/connexion',
+    error:    '/connexion',   // les erreurs redirigent vers /connexion?error=...
+    newUser:  '/inscription',
+  },
+
+  // ─── Secret ─────────────────────────────────────────────────────────────────
+  secret: process.env.NEXTAUTH_SECRET,
+
+  // ─── Debug (désactiver en prod) ─────────────────────────────────────────────
+  debug: process.env.NODE_ENV === 'development',
+};
+
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };

@@ -1,6 +1,10 @@
 // ─── Constantes horaires ─────────────────────────────────────────────────────
 export const OPEN_HOUR = 9;   // 9h00
+<<<<<<< HEAD
 export const CLOSE_HOUR = 18; // 18h00 (dernier créneau : 17h30)
+=======
+export const CLOSE_HOUR = 19; // 19h00
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 export const STEP = 30;       // créneaux de 30 min
 
 // ─── Génère tous les créneaux de la journée ─────────────────────────────────

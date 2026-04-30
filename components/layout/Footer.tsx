@@ -1,9 +1,17 @@
 import Link from 'next/link';
 
 const footerLinks = [
+<<<<<<< HEAD
   { href: '/le-salon',    label: 'Le Salon' },
   { href: '/contact',     label: 'Contact' },
   { href: '/prestations', label: 'Tarifs' },
+=======
+  { href: '/a-propos',    label: 'A Propos' },
+  { href: '/contact',     label: 'Contact' },
+  { href: '/prestations', label: 'Tarifs' },
+  { href: '/blog',        label: 'Blog' },
+  { href: '/le-salon',    label: 'Le Salon' },
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 ];
 
 export default function Footer() {

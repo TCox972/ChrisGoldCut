@@ -21,7 +21,10 @@ export async function POST(req: NextRequest) {
     }
 
     const user = session!.user as any;
+<<<<<<< HEAD
     const isAdmin = user.role === 'admin';
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     let effectiveEmployeId: string | null = null;
     if (user.role === 'employe') {
       effectiveEmployeId = user.id;
@@ -44,21 +47,28 @@ export async function POST(req: NextRequest) {
             date: dayStart,
             heures: (heures as string[]).slice().sort(),
             employeId: effectiveEmployeId,
+<<<<<<< HEAD
             adminHeures: isAdmin ? (heures as string[]).slice().sort() : [],
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
           });
         } else {
           const set = new Set(doc.heures);
           for (const h of heures as string[]) set.add(h);
           doc.heures = Array.from(set).sort();
+<<<<<<< HEAD
           if (isAdmin) {
             const adminSet = new Set(doc.adminHeures || []);
             for (const h of heures as string[]) adminSet.add(h);
             doc.adminHeures = Array.from(adminSet).sort();
           }
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
           await doc.save();
         }
       } else {
         if (doc) {
+<<<<<<< HEAD
           // Un employé ne peut pas débloquer les créneaux admin
           const adminSet = new Set(doc.adminHeures || []);
           const heuresToUnblock = isAdmin
@@ -69,6 +79,9 @@ export async function POST(req: NextRequest) {
           if (isAdmin) {
             doc.adminHeures = (doc.adminHeures || []).filter((h: string) => !(heures as string[]).includes(h));
           }
+=======
+          doc.heures = doc.heures.filter((h: string) => !heures.includes(h));
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
           if (doc.heures.length === 0) {
             await BlockedSlot.findByIdAndDelete(doc._id);
           } else {

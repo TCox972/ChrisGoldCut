@@ -1,5 +1,6 @@
 'use client';
 
+<<<<<<< HEAD
 import { useState, useEffect, useMemo } from 'react';
 import { Edit3, Trash2, Plus, Check, X, Loader2, ChevronUp, ChevronDown, Filter, GripVertical } from 'lucide-react';
 import CategorySelect from '@/components/ui/CategorySelect';
@@ -7,6 +8,14 @@ import CategorySelect from '@/components/ui/CategorySelect';
 type Prestation = {
   _id:       string;
   categorie: string;
+=======
+import { useState, useEffect } from 'react';
+import { Edit3, Trash2, Plus, Check, X, Loader2 } from 'lucide-react';
+
+type Prestation = {
+  _id:       string;
+  categorie: 'Coupes' | 'Dégradés' | 'Barbe' | 'Soins';
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   nom:       string;
   duree:     string;
   prix:      number;
@@ -15,7 +24,13 @@ type Prestation = {
 
 type Draft = Omit<Prestation, '_id' | 'actif'>;
 
+<<<<<<< HEAD
 const EMPTY_DRAFT: Draft = { categorie: '', nom: '', duree: '30 min', prix: 0 };
+=======
+const CATEGORIES = ['Coupes', 'Dégradés', 'Barbe', 'Soins'] as const;
+
+const EMPTY_DRAFT: Draft = { categorie: 'Coupes', nom: '', duree: '30 min', prix: 0 };
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 
 export default function AdminPrestationsPage() {
   const [items,   setItems]   = useState<Prestation[]>([]);
@@ -23,6 +38,7 @@ export default function AdminPrestationsPage() {
   const [editId,  setEditId]  = useState<string | null>(null);
   const [draft,   setDraft]   = useState<Draft>(EMPTY_DRAFT);
   const [saving,  setSaving]  = useState(false);
+<<<<<<< HEAD
   const [adding,  setAdding]  = useState(false);
 
   // Filtre par catégorie
@@ -67,6 +83,15 @@ export default function AdminPrestationsPage() {
         setItems(Array.isArray(prestas) ? prestas : []);
         setCatOrder(Array.isArray(orderData?.order) ? orderData.order : []);
       })
+=======
+  const [adding,  setAdding]  = useState(false); // mode "nouvelle ligne"
+
+  // ─── Chargement ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    fetch('/api/prestations?all=true') // all=true → inclut les inactives pour l'admin
+      .then(r => r.json())
+      .then(d => setItems(Array.isArray(d) ? d : []))
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
@@ -97,9 +122,12 @@ export default function AdminPrestationsPage() {
         const updated = await res.json();
         setItems(prev => prev.map(p => p._id === editId ? updated : p));
         setEditId(null);
+<<<<<<< HEAD
       } else {
         const err = await res.json().catch(() => null);
         alert(err?.error || 'Erreur lors de la mise à jour.');
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
       }
     } finally { setSaving(false); }
   };
@@ -107,12 +135,20 @@ export default function AdminPrestationsPage() {
   // ─── Création (POST) ─────────────────────────────────────────────────────────
   const startAdd = () => {
     setEditId(null);
+<<<<<<< HEAD
     setDraft({ ...EMPTY_DRAFT, categorie: availableCategories[0] ?? '' });
+=======
+    setDraft(EMPTY_DRAFT);
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     setAdding(true);
   };
 
   const confirmAdd = async () => {
+<<<<<<< HEAD
     if (!draft.nom.trim() || !draft.categorie.trim()) return;
+=======
+    if (!draft.nom.trim()) return;
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     setSaving(true);
     try {
       const res = await fetch('/api/prestations', {
@@ -124,9 +160,12 @@ export default function AdminPrestationsPage() {
         const created = await res.json();
         setItems(prev => [...prev, created]);
         setAdding(false);
+<<<<<<< HEAD
       } else {
         const err = await res.json().catch(() => null);
         alert(err?.error || 'Erreur lors de la création.');
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
       }
     } finally { setSaving(false); }
   };
@@ -138,6 +177,7 @@ export default function AdminPrestationsPage() {
     if (res.ok) setItems(prev => prev.filter(p => p._id !== id));
   };
 
+<<<<<<< HEAD
   // ─── Réordonnement des catégories ─────────────────────────────────────────
   const moveCategory = (index: number, direction: -1 | 1) => {
     const newOrder = [...orderedCategories];
@@ -244,6 +284,12 @@ export default function AdminPrestationsPage() {
           </div>
         </div>
       )}
+=======
+  // ─── Render ─────────────────────────────────────────────────────────────────
+  return (
+    <div>
+      <h1 className="font-body text-2xl font-bold text-gray-900 mb-6">Prestations</h1>
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 
       {loading ? (
         <div className="flex items-center gap-2 text-gray-400 py-12">
@@ -262,18 +308,32 @@ export default function AdminPrestationsPage() {
             <tbody className="divide-y divide-gray-50">
 
               {/* ── Lignes existantes ── */}
+<<<<<<< HEAD
               {displayedItems.map(item => {
+=======
+              {items.map(item => {
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                 const isEditing = editId === item._id;
                 return (
                   <tr key={item._id} className={`hover:bg-gray-50 transition-colors ${!item.actif ? 'opacity-40' : ''}`}>
                     {/* Catégorie */}
                     <td className="px-6 py-3">
                       {isEditing ? (
+<<<<<<< HEAD
                         <CategorySelect
                           value={draft.categorie}
                           onChange={v => handleDraft('categorie', v)}
                           categories={availableCategories}
                         />
+=======
+                        <select
+                          value={draft.categorie}
+                          onChange={e => handleDraft('categorie', e.target.value)}
+                          className="border border-gray-200 rounded px-3 py-1.5 text-sm font-body outline-none focus:border-yellow-400 bg-white"
+                        >
+                          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                       ) : (
                         <span className="font-body text-sm text-gray-600">{item.categorie}</span>
                       )}
@@ -358,11 +418,21 @@ export default function AdminPrestationsPage() {
               {adding && (
                 <tr className="bg-yellow-50">
                   <td className="px-6 py-3">
+<<<<<<< HEAD
                     <CategorySelect
                       value={draft.categorie}
                       onChange={v => handleDraft('categorie', v)}
                       categories={availableCategories}
                     />
+=======
+                    <select
+                      value={draft.categorie}
+                      onChange={e => handleDraft('categorie', e.target.value)}
+                      className="border border-yellow-300 rounded px-3 py-1.5 text-sm font-body outline-none focus:border-yellow-500 bg-white"
+                    >
+                      {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                   </td>
                   <td className="px-6 py-3">
                     <input
@@ -393,7 +463,11 @@ export default function AdminPrestationsPage() {
                   <td className="px-6 py-3">
                     <div className="flex items-center gap-2">
                       <button
+<<<<<<< HEAD
                         onClick={confirmAdd} disabled={saving || !draft.nom.trim() || !draft.categorie.trim()}
+=======
+                        onClick={confirmAdd} disabled={saving || !draft.nom.trim()}
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                         className="text-green-500 hover:text-green-700 disabled:opacity-40 transition-colors"
                       >
                         {saving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}

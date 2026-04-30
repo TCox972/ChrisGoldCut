@@ -115,7 +115,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           (e: any) => e.produitId.toString() === a.produitId
         );
         if (!existing) return null;
+<<<<<<< HEAD
         return { ...(existing as any).toObject(), quantite: Math.max(1, parseInt(a.quantite)) };
+=======
+        return { ...existing.toObject(), quantite: Math.max(1, parseInt(a.quantite)) };
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
       }).filter(Boolean);
 
       if (nouveauxArticles.length === 0) {

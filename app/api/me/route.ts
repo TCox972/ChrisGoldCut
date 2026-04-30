@@ -37,6 +37,7 @@ export async function PUT(req: NextRequest) {
       if (body[key] !== undefined) update[key] = body[key];
     }
 
+<<<<<<< HEAD
     // Max 3 personnes supplémentaires
     if (Array.isArray(update.autresPersonnes) && update.autresPersonnes.length > 3) {
       return NextResponse.json(
@@ -45,6 +46,8 @@ export async function PUT(req: NextRequest) {
       );
     }
 
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
     const updated = await User.findByIdAndUpdate(
       (session!.user as any).id,
       { $set: update },

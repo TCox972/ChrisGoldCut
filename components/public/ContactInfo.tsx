@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { MapPin, Phone, Mail } from 'lucide-react';
+=======
+import { MapPin, Phone, Mail, Instagram, Twitter, Facebook } from 'lucide-react';
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 import { Icon } from '@iconify/react';
 import { horaires } from '@/lib/data';
 
@@ -39,10 +43,17 @@ export default function ContactInfo() {
               </div>
             </div>
             <div className="flex items-center text-yellow-400 gap-4 mt-2">
+<<<<<<< HEAD
               <a href="https://www.instagram.com/gold_cut777?igsh=MWdmbDF0YWpiNWxibw==" target="_blank" rel="noopener noreferrer" className="hover:opacity-70">
                 <Icon icon="cib:instagram" width="24" height="24" />
               </a>
               <a href="https://wa.me/+596696102030" target="_blank" rel="noopener noreferrer" className="hover:opacity-70">
+=======
+              <a href="https://www.instagram.com/gold_cut777?igsh=MWdmbDF0YWpiNWxibw==" className="hover:opacity-70">
+                <Icon icon="cib:instagram" width="24" height="24" />
+              </a>
+              <a href="https://wa.me/+596696301020" className="hover:opacity-70">
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                 <Icon icon="cib:whatsapp" width="24" height="24" />
               </a>
             </div>

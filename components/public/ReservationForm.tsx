@@ -10,7 +10,11 @@ import { Loader2, Calendar, User, Users, UserPlus, Scissors, ChevronDown, Chevro
 
 type Prestation = {
   _id:       string;
+<<<<<<< HEAD
   categorie: string;
+=======
+  categorie: 'Coupes' | 'Dégradés' | 'Barbe' | 'Soins';
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   nom:       string;
   duree:     string;
   prix:      number;
@@ -21,7 +25,10 @@ type UserProfile = {
   nom:             string;
   email:           string;
   telephone:       string;
+<<<<<<< HEAD
   blackliste?:     boolean;
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   autresPersonnes: { prenom: string; nom: string }[];
 };
 
@@ -46,6 +53,10 @@ const MAX_PRESTATIONS = 3;
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
+<<<<<<< HEAD
+=======
+const CATEGORIES = ['Coupes', 'Dégradés', 'Barbe', 'Soins'] as const;
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 const MOIS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
 
 // ─── Helpers date ─────────────────────────────────────────────────────────────
@@ -112,7 +123,11 @@ export default function ReservationForm() {
         setPrestations(Array.isArray(prestas) ? prestas : []);
         setStaff(Array.isArray(staffData) ? staffData : []);
       })
+<<<<<<< HEAD
       .catch(() => setErrMsg('Impossible de charger les prestations. Veuillez rafraîchir la page.'))
+=======
+      .catch(console.error)
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
       .finally(() => setLoadingP(false));
   }, []);
 
@@ -131,7 +146,11 @@ export default function ReservationForm() {
           telephone: data.telephone || f.telephone,
         }));
       })
+<<<<<<< HEAD
       .catch(() => {});
+=======
+      .catch(console.error);
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
 
     fetch('/api/reservations?limit=1')
       .then(r => r.json())
@@ -141,7 +160,11 @@ export default function ReservationForm() {
           setLastPrestaId(rdvs[0].prestations[0]);
         }
       })
+<<<<<<< HEAD
       .catch(() => {});
+=======
+      .catch(console.error);
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   }, [isConnected]);
 
   // ─── 3. Pré-remplir la prestation ──────────────────────────────────────────
@@ -187,7 +210,11 @@ export default function ReservationForm() {
         setSlots(data.slots ?? []);
         setDureeMinutes(data.dureeMinutes ?? computedDuree);
       })
+<<<<<<< HEAD
       .catch(() => setErrMsg('Impossible de charger les créneaux.'))
+=======
+      .catch(console.error)
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
       .finally(() => setLoadingSlots(false));
   }, [form.date, form.prestationIds, form.employeId, computedDuree]);
 
@@ -231,11 +258,15 @@ export default function ReservationForm() {
 
       const data = await res.json();
       if (!res.ok) {
+<<<<<<< HEAD
         if (data.error === 'blackliste') {
           setErrMsg('La réservation en ligne n\'est pas disponible pour votre compte. Veuillez contacter le salon par téléphone.');
         } else {
           setErrMsg(data.error ?? 'Une erreur est survenue.');
         }
+=======
+        setErrMsg(data.error ?? 'Une erreur est survenue.');
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
         setStatus('error');
       } else {
         setCreatedNumero(data.numero ?? '');
@@ -270,22 +301,34 @@ export default function ReservationForm() {
     // Jours du mois
     for (let d = 1; d <= daysCount; d++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+<<<<<<< HEAD
       const dateObj = new Date(year, month, d);
       const isSunday = dateObj.getDay() === 0;
       const isPast  = dateStr < today;
       const isDisabled = isPast || isSunday;
+=======
+      const isPast  = dateStr < today;
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
       const isSelected = form.date === dateStr;
 
       cells.push(
         <button
           key={d}
           type="button"
+<<<<<<< HEAD
           disabled={isDisabled}
+=======
+          disabled={isPast}
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
           onClick={() => setForm(f => ({ ...f, date: dateStr, heure: '' }))}
           className={`w-9 h-9 rounded-full text-sm font-body transition-colors
             ${isSelected
               ? 'bg-yellow-400 text-gray-900 font-bold'
+<<<<<<< HEAD
               : isDisabled
+=======
+              : isPast
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                 ? 'text-white/15 cursor-not-allowed'
                 : 'text-white/70 hover:bg-white/10'
             }`}
@@ -445,6 +488,7 @@ export default function ReservationForm() {
     );
   }
 
+<<<<<<< HEAD
   // ─── Client blacklisté ────────────────────────────────────────────────────
   if (profile?.blackliste) {
     return (
@@ -468,6 +512,8 @@ export default function ReservationForm() {
     );
   }
 
+=======
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
   // ─── Formulaire principal ──────────────────────────────────────────────────
   return (
     <section className="py-16 px-6 bg-white">
@@ -600,7 +646,11 @@ export default function ReservationForm() {
                                 ? 'Choisir une prestation...'
                                 : 'Ajouter une autre prestation...'}
                             </option>
+<<<<<<< HEAD
                             {Array.from(new Set(prestations.map(p => p.categorie).filter(Boolean))).map(cat => {
+=======
+                            {CATEGORIES.map(cat => {
+>>>>>>> 1e8aa5ab498344a2523374d60552200b88306272
                               const group = prestations.filter(
                                 p => p.categorie === cat && !form.prestationIds.includes(p._id)
                               );
