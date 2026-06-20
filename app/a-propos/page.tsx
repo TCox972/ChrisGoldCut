@@ -9,8 +9,8 @@ import Link from 'next/link';
 export const metadata: Metadata = {
   title: 'À propos — Coiffeur Gold Cut à Ducos, Martinique',
   description:
-    "Découvrez l'histoire de Gold Cut, salon de coiffure homme à Ducos (Martinique) " +
-    "et l'expertise de Christopher : coupes, dégradés, barbe et soins capillaires.",
+    "Découvrez l'histoire de Gold Cut, salon de coiffure mixte à Ducos (Martinique) " +
+    "et l'expertise de Christopher : coupes homme et femme, dégradés, barbe et soins capillaires.",
   alternates: { canonical: '/a-propos' },
 };
 

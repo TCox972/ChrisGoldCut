@@ -8,12 +8,12 @@ import ContactInfo from '@/components/public/ContactInfo';
 export const metadata: Metadata = {
   title: 'Réserver un coiffeur en ligne — Ducos, Martinique',
   description:
-    "Réservez votre rendez-vous chez Gold Cut, coiffeur homme à Ducos (Martinique). " +
-    "Coupe, dégradé, soin barbe ou cheveux : choisissez votre prestation, votre date et " +
-    "votre créneau en quelques clics.",
+    "Réservez votre rendez-vous chez Gold Cut, salon de coiffure mixte à Ducos (Martinique). " +
+    "Coupe homme ou femme, dégradé, soin barbe ou cheveux : choisissez votre prestation, votre date " +
+    "et votre créneau en quelques clics.",
   alternates: { canonical: '/reservation' },
   openGraph: {
-    title: 'Réserver — Gold Cut, Coiffeur Ducos Martinique',
+    title: 'Réserver — Gold Cut, Salon mixte Ducos Martinique',
     description: 'Prenez rendez-vous en ligne chez votre coiffeur à Ducos, Martinique.',
     url: '/reservation',
   },
@@ -25,7 +25,6 @@ export default function ReservationPage() {
       <Navbar dark />
       <PageHero
         title="Réservation"
-        subtitle="Coiffeur Homme · Ducos · Martinique"
         srTitle="— Prendre rendez-vous chez votre coiffeur à Ducos, Martinique"
         backgroundImage="https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=1600&q=80"
       />

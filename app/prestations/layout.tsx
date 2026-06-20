@@ -1,15 +1,15 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Prestations — Coiffeur Homme à Ducos, Martinique',
+  title: 'Prestations — Salon de coiffure mixte à Ducos, Martinique',
   description:
-    "Toutes les prestations de votre coiffeur à Ducos (Martinique) : coupes homme, dégradés, " +
-    "barbe, soins capillaires. Tarifs clairs et réservation en ligne avec Gold Cut.",
+    "Toutes les prestations de Gold Cut, salon mixte à Ducos (Martinique) : coupes homme et femme, " +
+    "dégradés, barbe, soins capillaires. Tarifs clairs et réservation en ligne.",
   alternates: { canonical: '/prestations' },
   openGraph: {
-    title: 'Prestations — Gold Cut, Coiffeur Ducos Martinique',
+    title: 'Prestations — Gold Cut, Salon mixte Ducos Martinique',
     description:
-      'Coupe, dégradé, soin barbe, soin cheveux : découvrez nos prestations à Ducos (Martinique).',
+      'Coupe, dégradé, soin barbe, soin cheveux : nos prestations homme et femme à Ducos (Martinique).',
     url: '/prestations',
   },
 };

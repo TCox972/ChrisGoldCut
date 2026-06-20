@@ -78,8 +78,7 @@ export default function BoutiquePage() {
       <Navbar dark />
       <PageHero
         title="Notre Boutique"
-        subtitle="Produits soin barbe & cheveux · Ducos, Martinique"
-        srTitle="— Produits soin barbe et cheveux à Ducos, Martinique"
+        srTitle="— Produits soin barbe et cheveux du salon Gold Cut à Ducos, Martinique"
         backgroundImage="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=1600&q=80"
       />
 

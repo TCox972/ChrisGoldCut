@@ -27,8 +27,7 @@ export default function ContactPage() {
       <Navbar dark />
       <PageHero
         title="Contact"
-        subtitle="Coiffeur · Ducos · Martinique"
-        srTitle="— Contactez votre coiffeur à Ducos, Martinique"
+        srTitle="— Contactez votre salon de coiffure mixte à Ducos, Martinique"
         backgroundImage="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=1600&q=80"
       />
 

@@ -5,7 +5,7 @@ import Providers from '@/components/Providers';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://goldcut.fr';
 const SITE_NAME = 'Gold Cut';
-const TAGLINE = 'Coiffeur Homme à Ducos — Martinique';
+const TAGLINE = 'Salon de Coiffure Mixte à Ducos — Martinique';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -14,19 +14,25 @@ export const metadata: Metadata = {
     template: `%s | ${SITE_NAME} — Coiffeur Ducos Martinique`,
   },
   description:
-    "Gold Cut, salon de coiffure premium à Ducos (Martinique). Coupes homme, dégradés, " +
-    "soins barbe et entretien des cheveux. Réservez votre rendez-vous en ligne avec Christopher, " +
-    "votre coiffeur expert au cœur de la Martinique.",
+    "Gold Cut, salon de coiffure mixte à Ducos (Martinique) : nous accueillons hommes et femmes. " +
+    "Coupes, dégradés, soins barbe et entretien des cheveux. Réservez votre rendez-vous en ligne " +
+    "avec Christopher, votre coiffeur expert au cœur de la Martinique.",
   applicationName: SITE_NAME,
   authors: [{ name: 'Gold Cut Ducos' }],
   generator: 'Next.js',
   keywords: [
     'coiffeur Ducos',
     'coiffeur Martinique',
+    'coiffeuse Ducos',
+    'coiffeuse Martinique',
     'salon coiffure Ducos',
     'salon coiffure Martinique',
+    'salon coiffure mixte Ducos',
+    'salon coiffure mixte Martinique',
     'coupe homme Ducos',
     'coupe homme Martinique',
+    'coupe femme Ducos',
+    'coupe femme Martinique',
     'barbier Ducos',
     'barbier Martinique',
     'soin cheveux Martinique',
@@ -34,7 +40,7 @@ export const metadata: Metadata = {
     'taille de barbe Martinique',
     'Gold Cut',
     'coiffeur 97224',
-    'salon homme Ducos',
+    'salon mixte Ducos',
     'Christopher coiffeur Martinique',
   ],
   creator: SITE_NAME,
@@ -51,14 +57,14 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     title: `${SITE_NAME} — ${TAGLINE}`,
     description:
-      "Salon de coiffure premium à Ducos en Martinique. Coupes, dégradés, soins barbe et cheveux. " +
+      "Salon de coiffure mixte à Ducos en Martinique. Coupes, dégradés, soins barbe et cheveux pour homme et femme. " +
       "Réservez en ligne avec Christopher.",
-    images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: 'Gold Cut — Salon de coiffure à Ducos, Martinique' }],
+    images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: 'Gold Cut — Salon de coiffure mixte à Ducos, Martinique' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: `${SITE_NAME} — ${TAGLINE}`,
-    description: 'Coiffeur Homme à Ducos, Martinique. Réservez en ligne.',
+    description: 'Salon de coiffure mixte à Ducos, Martinique. Réservez en ligne.',
     images: ['/og-image.jpg'],
   },
   robots: {
@@ -101,8 +107,8 @@ const hairSalonJsonLd = {
   name: SITE_NAME,
   alternateName: 'Gold Cut Ducos',
   description:
-    'Salon de coiffure homme à Ducos (Martinique). Coupes, dégradés, soins barbe et entretien des cheveux. ' +
-    'Réservation de rendez-vous en ligne.',
+    'Salon de coiffure mixte à Ducos (Martinique). Nous accueillons hommes et femmes : coupes, dégradés, ' +
+    'soins barbe et entretien des cheveux. Réservation de rendez-vous en ligne.',
   url: SITE_URL,
   telephone: '+596696102030',
   email: 'info@goldcut.com',
@@ -145,10 +151,15 @@ const hairSalonJsonLd = {
   ],
   makesOffer: [
     { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Coupe homme' } },
+    { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Coupe femme' } },
     { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Dégradé' } },
     { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Taille de barbe' } },
     { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Soin cheveux' } },
   ],
+  audience: {
+    '@type': 'PeopleAudience',
+    suggestedGender: 'unisex',
+  },
 };
 
 const websiteJsonLd = {
