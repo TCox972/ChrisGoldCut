@@ -6,7 +6,7 @@ import Footer from '@/components/layout/Footer';
 import PageHero from '@/components/layout/PageHero';
 import SectionTitle from '@/components/ui/SectionTitle';
 import { useCart } from '@/lib/cart-context';
-import { Plus, Minus, Trash2, ShoppingCart, Loader2 } from 'lucide-react';
+import { Plus, Minus, Trash2, ShoppingCart, Loader2, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 
 type Produit = {
@@ -87,8 +87,32 @@ export default function BoutiquePage() {
         <div className="max-w-5xl mx-auto">
           <SectionTitle className="mb-10">Nos Produits</SectionTitle>
 
-          {/* Onglets catégories */}
-          <div className="flex border-b border-gray-200 mb-8">
+          {/* ── Sélecteur catégorie : menu déroulant sur mobile ── */}
+          <div className="md:hidden mb-8">
+            <label htmlFor="cat-select" className="sr-only">Catégorie</label>
+            <div className="relative">
+              <select
+                id="cat-select"
+                value={active}
+                onChange={e => setActive(e.target.value)}
+                className="w-full appearance-none bg-white border-2 rounded-lg px-4 py-3 pr-10
+                  font-display text-sm tracking-[0.2em] uppercase font-bold text-gray-900
+                  focus:outline-none focus:ring-2 focus:ring-yellow-400/40 transition-colors"
+                style={{ borderColor: '#D4A017' }}
+              >
+                {categories.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <ChevronDown
+                size={18}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-yellow-600 pointer-events-none"
+              />
+            </div>
+          </div>
+
+          {/* ── Onglets catégories : visibles uniquement à partir de md ── */}
+          <div className="hidden md:flex border-b border-gray-200 mb-8">
             {categories.map(c => (
               <button
                 key={c}

@@ -3,8 +3,8 @@ import Footer from '@/components/layout/Footer';
 import SectionTitle from '@/components/ui/SectionTitle';
 import ReservationForm from '@/components/public/ReservationForm';
 import ContactInfo from '@/components/public/ContactInfo';
+import HomeInfoBar from '@/components/public/HomeInfoBar';
 import Link from 'next/link';
-import { Icon } from '@iconify/react';
 import { Scissors, Droplets, Zap } from 'lucide-react';
 
 const prestationsHome = [
@@ -55,22 +55,8 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* Info bar */}
-        <div className="absolute bottom-0 left-0 right-0 bg-yellow-400/95 backdrop-blur-sm">
-          <div className="max-w-5xl mx-auto px-6 py-3 flex flex-wrap items-center justify-between gap-4 text-xs font-body font-medium text-gray-900">
-            <span>📞 +596 (0)696 10 20 30</span>
-            <span>📍 Impasse de la Sablière — 97224 DUCOS</span>
-            <span>🕐 Du lundi au samedi — De 9h à 18h</span>
-            <div className="flex items-center gap-3">
-              <a href="https://www.instagram.com/gold_cut777?igsh=MWdmbDF0YWpiNWxibw==" target="_blank" rel="noopener noreferrer" className="hover:opacity-70">
-                <Icon icon="cib:instagram" width="24" height="24" />
-              </a>
-              <a href="https://wa.me/+596696102030" target="_blank" rel="noopener noreferrer" className="hover:opacity-70">
-                <Icon icon="cib:whatsapp" width="24" height="24" />
-              </a>
-            </div>
-          </div>
-        </div>
+        {/* Info bar (icônes cliquables sur mobile, texte sur desktop) */}
+        <HomeInfoBar />
       </section>
 
       {/* ─── Nos Prestations ─────────────────────────────────────────────── */}
@@ -129,19 +115,25 @@ export default function HomePage() {
             Dans notre salon, vous serez pris en charge et sublimé.
           </p>
 
-          {/* Marques */}
-          <div className="flex items-center justify-center gap-3 mb-3">
-            <div className="h-px w-8" style={{ background: 'linear-gradient(90deg, transparent, #D4A017)' }} />
-            <span className="text-yellow-500 text-xs">★</span>
-            <p className="font-display text-xs tracking-[0.25em] uppercase text-gray-600">Nos marques</p>
-            <span className="text-yellow-500 text-xs">★</span>
-            <div className="h-px w-8" style={{ background: 'linear-gradient(90deg, #D4A017, transparent)' }} />
+          {/* Marques — colonne, mises en avant (mobile + desktop) */}
+          <div className="flex items-center justify-center gap-3 mb-8">
+            <div className="h-px w-10" style={{ background: 'linear-gradient(90deg, transparent, #D4A017)' }} />
+            <span className="text-yellow-500 text-base">★</span>
+            <p className="font-display text-sm tracking-[0.3em] uppercase text-gray-700 font-bold">Nos marques</p>
+            <span className="text-yellow-500 text-base">★</span>
+            <div className="h-px w-10" style={{ background: 'linear-gradient(90deg, #D4A017, transparent)' }} />
           </div>
-          <div className="flex items-center justify-center gap-10 mt-6">
+          <div className="flex flex-col items-center gap-4 mt-8 max-w-md mx-auto">
             {marques.map((m, i) => (
-              <span key={i} className="font-display font-bold text-sm tracking-[0.2em] uppercase text-gray-600 border border-gray-200 px-8 py-4 rounded">
+              <div
+                key={i}
+                className="w-full font-display font-black text-lg md:text-2xl tracking-[0.25em] uppercase text-gray-800
+                  border-2 px-8 py-6 rounded text-center bg-gradient-to-b from-white to-yellow-50/30
+                  shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
+                style={{ borderColor: '#D4A017' }}
+              >
                 {m}
-              </span>
+              </div>
             ))}
           </div>
         </div>

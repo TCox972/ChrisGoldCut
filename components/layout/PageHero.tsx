@@ -38,11 +38,6 @@ export default function PageHero({ title, subtitle, srTitle, backgroundImage }: 
         <div className="h-px w-16" style={{ background: 'linear-gradient(90deg, transparent, #D4A017, transparent)' }} />
         <div className="text-yellow-400 text-xs tracking-[0.3em]">★</div>
       </div>
-
-      {/* Wave bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-10 overflow-hidden">
-        <div className="w-full h-10 bg-white" style={{ clipPath: 'ellipse(55% 100% at 50% 100%)' }} />
-      </div>
     </div>
   );
 }

@@ -9,15 +9,8 @@ const footerLinks = [
 export default function Footer() {
   return (
     <footer className="bg-dark-800" style={{ backgroundColor: '#111111' }}>
-      {/* Wave top */}
-      <div className="relative h-16 overflow-hidden" style={{ backgroundColor: '#111111' }}>
-        <div className="absolute inset-0 flex items-end justify-center">
-          <div className="w-full h-16 bg-white" style={{ clipPath: 'ellipse(45% 100% at 50% 0%)' }} />
-        </div>
-      </div>
-
       {/* Logo */}
-      <div className="flex justify-center pt-6 pb-8">
+      <div className="flex justify-center pt-10 pb-8">
         <div className="flex flex-col items-center">
           <div className="font-display text-xl font-black tracking-[0.15em] uppercase text-white">GOLD CUT</div>
           <div className="font-script text-sm" style={{ color: '#D4A017' }}>Gold-Cuts</div>
