@@ -8,6 +8,7 @@ import {
   Edit3, Plus, Gift, UserX,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import ConfirmModal from '@/components/admin/ConfirmModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -78,8 +79,13 @@ const ALL_SLOTS = (() => {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+// IMPORTANT : on lit les composants en UTC pour aligner avec le stockage serveur
+// (les dates de blocage/RDV sont persistées comme "heure murale" en UTC).
+// Avec des accesseurs locaux, un blocage du 20/06 stocké à `2026-06-20T00:00Z`
+// serait lu comme "19 juin" dans un navigateur en UTC-4 → la clé ne matcherait
+// jamais et le slot bloqué disparaîtrait visuellement.
 function toDateStr(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
 }
 
 function toMonthStr(y: number, m: number): string {
@@ -158,6 +164,14 @@ export default function AdminReservationsPage() {
   // Modale annulation avec motif
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelMotif,     setCancelMotif]     = useState('');
+
+  // Toast d'erreur global pour les actions admin (annulation, validation, blocage…)
+  const [actionError, setActionError] = useState('');
+  useEffect(() => {
+    if (!actionError) return;
+    const t = setTimeout(() => setActionError(''), 5000);
+    return () => clearTimeout(t);
+  }, [actionError]);
 
   // ─── Chargement des prestations ────────────────────────────────────────────
   useEffect(() => {
@@ -289,7 +303,8 @@ export default function AdminReservationsPage() {
 
     for (const rdv of dayRdvs) {
       const d = new Date(rdv.date);
-      const startSlot = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      // UTC : la date du RDV est stockée comme heure murale du salon en UTC
+      const startSlot = `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
       const idx = ALL_SLOTS.indexOf(startSlot);
       if (idx === -1) continue;
 
@@ -327,51 +342,62 @@ export default function AdminReservationsPage() {
           return others;
         });
       } else {
-        const data = await res.json();
-        if (data.error) alert(data.error);
+        const data = await res.json().catch(() => null);
+        setActionError(data?.error || 'Impossible de modifier ce créneau.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setActionError('Erreur réseau. Vérifiez votre connexion.');
     }
   };
 
   // ─── Bloquer / débloquer une journée entière ──────────────────────────────
-  const toggleBlockDay = async (dateStr: string) => {
+  // L'ouverture de la modale se fait via askToggleBlockDay (UI),
+  // l'action serveur dans toggleBlockDay (callback de la modale).
+  const [pendingDayToggle, setPendingDayToggle] = useState<{
+    dateStr: string;
+    action: 'block' | 'unblock';
+  } | null>(null);
+  const [dayToggleLoading, setDayToggleLoading] = useState(false);
+
+  const askToggleBlockDay = (dateStr: string) => {
     const blockedSet   = getBlockedForDay(dateStr);
     const adminBlocked = getAdminBlockedForDay(dateStr);
     const allBlocked   = ALL_SLOTS.every(s => blockedSet.has(s));
 
-    // Déblocage : un employé ne peut pas débloquer si l'admin a bloqué la journée
     if (allBlocked && !isAdmin && ALL_SLOTS.some(s => adminBlocked.has(s))) {
-      alert('Cette journée a été bloquée par le gérant. Vous ne pouvez pas la débloquer.');
+      setActionError('Cette journée a été bloquée par le gérant. Vous ne pouvez pas la débloquer.');
       return;
     }
 
-    const action = allBlocked ? 'unblock' : 'block';
-    if (!confirm(action === 'block'
-      ? 'Bloquer tous les créneaux de cette journée ?'
-      : 'Débloquer tous les créneaux de cette journée ?'
-    )) return;
+    setPendingDayToggle({ dateStr, action: allBlocked ? 'unblock' : 'block' });
+  };
+
+  const toggleBlockDay = async () => {
+    if (!pendingDayToggle) return;
+    const { dateStr, action } = pendingDayToggle;
+    setDayToggleLoading(true);
 
     try {
       const res = await fetch('/api/blocked-slots/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          dates: [dateStr],
-          heures: ALL_SLOTS,
+          slots: [{ date: dateStr, heures: ALL_SLOTS }],
           action,
           employeId: filterEmployeId || null,
         }),
       });
       if (res.ok) {
         fetchMonth(calMonth.year, calMonth.month);
+        setPendingDayToggle(null);
       } else {
-        const data = await res.json();
-        if (data.error) alert(data.error);
+        const data = await res.json().catch(() => null);
+        setActionError(data?.error || 'Impossible d\'appliquer le blocage. Réessayez.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setActionError('Erreur réseau. Vérifiez votre connexion.');
+    } finally {
+      setDayToggleLoading(false);
     }
   };
 
@@ -390,7 +416,7 @@ export default function AdminReservationsPage() {
     selectedSlots.has(`${dateStr}|${heure}`);
 
   const applyBulk = async (action: 'block' | 'unblock') => {
-    // Grouper par date
+    // Grouper les heures sélectionnées PAR DATE (chaque date a ses propres heures).
     const byDate = new Map<string, string[]>();
     selectedSlots.forEach(key => {
       const [date, heure] = key.split('|');
@@ -398,24 +424,24 @@ export default function AdminReservationsPage() {
       byDate.get(date)!.push(heure);
     });
 
-    const dates  = Array.from(byDate.keys());
-    const heuresSet = new Set<string>();
-    selectedSlots.forEach(k => heuresSet.add(k.split('|')[1]));
-    const heures = Array.from(heuresSet);
+    const slots = Array.from(byDate.entries()).map(([date, heures]) => ({ date, heures }));
 
     try {
       const res = await fetch('/api/blocked-slots/bulk', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ dates, heures, action, employeId: filterEmployeId || null }),
+        body:    JSON.stringify({ slots, action, employeId: filterEmployeId || null }),
       });
       if (res.ok) {
         setSelectionMode(false);
         setSelectedSlots(new Set());
         fetchMonth(calMonth.year, calMonth.month);
+      } else {
+        const data = await res.json().catch(() => null);
+        setActionError(data?.error || 'Impossible d\'appliquer le blocage. Réessayez.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setActionError('Erreur réseau. Vérifiez votre connexion.');
     }
   };
 
@@ -432,9 +458,12 @@ export default function AdminReservationsPage() {
         if (detailRdv?._id === id) setDetailRdv(null);
         setShowCancelModal(false);
         setCancelMotif('');
+      } else {
+        const data = await res.json().catch(() => null);
+        setActionError(data?.error || 'Impossible d\'annuler ce rendez-vous. Réessayez.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setActionError('Erreur réseau. Vérifiez votre connexion.');
     }
   };
 
@@ -449,9 +478,12 @@ export default function AdminReservationsPage() {
       if (res.ok) {
         setRdvs(prev => prev.map(r => r._id === id ? { ...r, statut: 'absent' } : r));
         if (detailRdv?._id === id) setDetailRdv(null);
+      } else {
+        const data = await res.json().catch(() => null);
+        setActionError(data?.error || 'Impossible de marquer ce client absent. Réessayez.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setActionError('Erreur réseau. Vérifiez votre connexion.');
     }
   };
 
@@ -466,9 +498,12 @@ export default function AdminReservationsPage() {
       if (res.ok) {
         setRdvs(prev => prev.map(r => r._id === id ? { ...r, retardSignale: true } : r));
         if (detailRdv?._id === id) setDetailRdv({ ...detailRdv, retardSignale: true });
+      } else {
+        const data = await res.json().catch(() => null);
+        setActionError(data?.error || 'Impossible de signaler le retard. Réessayez.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setActionError('Erreur réseau. Vérifiez votre connexion.');
     }
   };
 
@@ -503,9 +538,12 @@ export default function AdminReservationsPage() {
             })
             .catch(console.error);
         }
+      } else {
+        const data = await res.json().catch(() => null);
+        setActionError(data?.error || 'Impossible de valider la prestation. Réessayez.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setActionError('Erreur réseau. Vérifiez votre connexion.');
     }
   };
 
@@ -699,7 +737,7 @@ export default function AdminReservationsPage() {
               </span>
             ) : (
               <button
-                onClick={() => toggleBlockDay(selectedDate)}
+                onClick={() => askToggleBlockDay(selectedDate)}
                 className={`flex items-center gap-1.5 font-body text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
                   allDayBlocked
                     ? 'text-green-700 bg-green-50 border border-green-200 hover:bg-green-100'
@@ -853,8 +891,13 @@ export default function AdminReservationsPage() {
   // ─── Planning semaine ─────────────────────────────────────────────────────
   const renderWeekSchedule = () => {
     const weekDates = getWeekDates(selectedDate);
-    const weekStart = new Date(weekDates[0] + 'T12:00:00');
-    const weekEnd   = new Date(weekDates[5] + 'T12:00:00');
+    // Garde : getWeekDates est censé retourner 6 entrées (Lun-Sam). Si pour une
+    // raison ou une autre il renvoie moins, on retombe sur la dernière entrée
+    // disponible pour éviter un `Invalid Date` au render.
+    const firstDate = weekDates[0] ?? selectedDate;
+    const lastDate  = weekDates[weekDates.length - 1] ?? firstDate;
+    const weekStart = new Date(firstDate + 'T12:00:00');
+    const weekEnd   = new Date(lastDate + 'T12:00:00');
 
     return (
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -980,8 +1023,9 @@ export default function AdminReservationsPage() {
     if (!detailRdv) return null;
     const rdv = detailRdv;
     const dateObj = new Date(rdv.date);
-    const jourSemaine = JOURS_LONG[dateObj.getDay() === 0 ? 6 : dateObj.getDay() - 1];
-    const heure = `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
+    // Lecture en UTC : la date est stockée comme heure murale du salon en UTC
+    const jourSemaine = JOURS_LONG[dateObj.getUTCDay() === 0 ? 6 : dateObj.getUTCDay() - 1];
+    const heure = `${String(dateObj.getUTCHours()).padStart(2, '0')}:${String(dateObj.getUTCMinutes()).padStart(2, '0')}`;
 
     return (
       <>
@@ -1525,6 +1569,37 @@ export default function AdminReservationsPage() {
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <div>
+      {/* Modale de confirmation blocage/déblocage journée */}
+      <ConfirmModal
+        open={!!pendingDayToggle}
+        title={pendingDayToggle?.action === 'block'
+          ? 'Bloquer toute la journée ?'
+          : 'Débloquer toute la journée ?'}
+        message={pendingDayToggle?.action === 'block'
+          ? 'Tous les créneaux de cette journée seront marqués bloqués et indisponibles à la réservation.'
+          : 'Tous les créneaux de cette journée redeviendront disponibles à la réservation.'}
+        confirmLabel={pendingDayToggle?.action === 'block' ? 'Bloquer la journée' : 'Débloquer la journée'}
+        variant={pendingDayToggle?.action === 'block' ? 'danger' : 'default'}
+        loading={dayToggleLoading}
+        onConfirm={toggleBlockDay}
+        onCancel={() => setPendingDayToggle(null)}
+      />
+
+      {/* Toast d'erreur global (auto-disparait après 5 s) */}
+      {actionError && (
+        <div className="fixed top-6 right-6 z-50 max-w-sm bg-red-600 text-white rounded-lg shadow-xl px-4 py-3 flex items-start gap-3">
+          <span className="font-body text-sm flex-1">{actionError}</span>
+          <button
+            type="button"
+            onClick={() => setActionError('')}
+            aria-label="Fermer"
+            className="text-white/70 hover:text-white"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-body text-2xl font-bold text-gray-900">Réservations</h1>

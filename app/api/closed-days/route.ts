@@ -4,6 +4,7 @@ import ClosedDay from '@/models/ClosedDay';
 import Reservation from '@/models/Reservation';
 import { requireAdmin } from '@/lib/auth';
 import { notifyCancellation } from '@/lib/notifications';
+import { dayStartUTC, dayEndUTC } from '@/lib/dates';
 
 // ─── GET /api/closed-days?month=2026-04 ─────────────────────────────────────
 export async function GET(req: NextRequest) {
@@ -16,7 +17,11 @@ export async function GET(req: NextRequest) {
     const filter: Record<string, unknown> = {};
     if (month) {
       const [y, m] = month.split('-').map(Number);
-      filter.date = { $gte: new Date(y, m - 1, 1), $lte: new Date(y, m, 0, 23, 59, 59) };
+      // Bornes UTC alignées avec le stockage UTC (dayStartUTC)
+      filter.date = {
+        $gte: new Date(Date.UTC(y, m - 1, 1, 0, 0, 0)),
+        $lte: new Date(Date.UTC(y, m, 0, 23, 59, 59, 999)),
+      };
     }
 
     const days = await ClosedDay.find(filter).sort({ date: 1 }).lean();
@@ -45,8 +50,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Motif requis.' }, { status: 400 });
     }
 
-    const dayStart = new Date(`${dateStr}T00:00:00`);
-    const dayEnd   = new Date(`${dateStr}T23:59:59`);
+    const dayStart = dayStartUTC(dateStr);
+    const dayEnd   = dayEndUTC(dateStr);
+
+    // Garde : on refuse de fermer un jour déjà passé. Une fermeture rétroactive
+    // annulerait des RDV déjà honorés et fausserait les statistiques.
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    if (dayEnd < todayStart) {
+      return NextResponse.json(
+        { error: 'Impossible de fermer un jour déjà passé.' },
+        { status: 400 },
+      );
+    }
 
     // Vérifier si déjà fermé
     const existing = await ClosedDay.findOne({
@@ -111,8 +127,8 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Date requise.' }, { status: 400 });
     }
 
-    const dayStart = new Date(`${dateStr}T00:00:00`);
-    const dayEnd   = new Date(`${dateStr}T23:59:59`);
+    const dayStart = dayStartUTC(dateStr);
+    const dayEnd   = dayEndUTC(dateStr);
 
     const existing = await ClosedDay.findOne({
       date: { $gte: dayStart, $lte: dayEnd },

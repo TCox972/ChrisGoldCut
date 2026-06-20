@@ -17,9 +17,10 @@ function parseMonthParam(month: string | null): { year: number; m0: number } {
 }
 
 function monthRange(year: number, m0: number): { start: Date; end: Date } {
+  // Bornes UTC alignées avec le stockage UTC des dates de RDV
   return {
-    start: new Date(year, m0, 1, 0, 0, 0, 0),
-    end:   new Date(year, m0 + 1, 0, 23, 59, 59, 999),
+    start: new Date(Date.UTC(year, m0, 1, 0, 0, 0, 0)),
+    end:   new Date(Date.UTC(year, m0 + 1, 0, 23, 59, 59, 999)),
   };
 }
 

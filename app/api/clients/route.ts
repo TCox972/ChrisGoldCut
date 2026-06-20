@@ -5,8 +5,17 @@ import Reservation from '@/models/Reservation';
 import { requireAdmin } from '@/lib/auth';
 
 // ─── GET /api/clients ─────────────────────────────────────────────────────────
-// Admin uniquement — liste tous les clients avec stats enrichies.
-// Query : ?q=<recherche> (nom, prénom ou téléphone)
+// Admin uniquement — liste paginée des clients avec stats enrichies.
+// Query :
+//   ?q=<recherche>  (nom, prénom, email ou téléphone)
+//   ?page=N         (défaut: 1)
+//   ?limit=N        (défaut: 50, max: 200)
+//
+// Réponse paginée : { clients: [...], total, page, limit }
+// Si `page` n'est PAS fourni, on retourne le tableau brut (compat ascendante).
+const DEFAULT_LIMIT = 50;
+const MAX_LIMIT = 200;
+
 export async function GET(req: NextRequest) {
   const { error } = await requireAdmin();
   if (error) return error;
@@ -15,6 +24,15 @@ export async function GET(req: NextRequest) {
     await connectDB();
     const { searchParams } = new URL(req.url);
     const q = searchParams.get('q')?.trim();
+    const pageParam  = searchParams.get('page');
+    const limitParam = searchParams.get('limit');
+    const paginated  = pageParam !== null;
+
+    const page  = Math.max(1, parseInt(pageParam || '1', 10) || 1);
+    const limit = Math.min(
+      MAX_LIMIT,
+      Math.max(1, parseInt(limitParam || String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT),
+    );
 
     // Filtre de recherche
     const filter: Record<string, unknown> = { role: 'client' };
@@ -23,14 +41,23 @@ export async function GET(req: NextRequest) {
       filter.$or = [
         { prenom:    { $regex: escaped, $options: 'i' } },
         { nom:       { $regex: escaped, $options: 'i' } },
+        { email:     { $regex: escaped, $options: 'i' } },
         { telephone: { $regex: escaped, $options: 'i' } },
       ];
     }
 
-    const clients = await User.find(filter)
+    // Total (pour l'UI de pagination), calculé en parallèle de la requête principale
+    const totalPromise = paginated ? User.countDocuments(filter) : Promise.resolve(0);
+
+    const query = User.find(filter)
       .select('-password')
-      .sort({ createdAt: -1 })
-      .lean();
+      .sort({ createdAt: -1 });
+
+    if (paginated) {
+      query.skip((page - 1) * limit).limit(limit);
+    }
+
+    const [clients, total] = await Promise.all([query.lean(), totalPromise]);
 
     // Toutes les réservations validées pour les stats (batch, pas N+1)
     const clientIds = clients.map(c => c._id);
@@ -106,6 +133,9 @@ export async function GET(req: NextRequest) {
       };
     });
 
+    if (paginated) {
+      return NextResponse.json({ clients: enriched, total, page, limit });
+    }
     return NextResponse.json(enriched);
   } catch (err) {
     console.error('[GET /api/clients]', err);

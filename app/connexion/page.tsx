@@ -40,20 +40,33 @@ function ConnexionContent() {
     setError('');
 
     const ok = await login(email, password);
-    setLoading(false);
 
-    if (ok) {
-      const callbackUrl = searchParams.get('callbackUrl');
-      if (callbackUrl) { window.location.href = callbackUrl; return; }
+    if (!ok) {
+      setLoading(false);
+      setError('Email ou mot de passe incorrect.');
+      return;
+    }
 
+    const callbackUrl = searchParams.get('callbackUrl');
+    if (callbackUrl) { window.location.href = callbackUrl; return; }
+
+    // Récupération du rôle avec retries : NextAuth peut ne pas avoir
+    // encore propagé la session juste après signIn.
+    let role: string | undefined;
+    for (let i = 0; i < 6; i++) {
       try {
         const session = await getSession();
-        const role = (session?.user as any)?.role;
-        window.location.href = (role === 'admin' || role === 'employe') ? '/admin/reservations' : '/compte/informations';
+        role = (session?.user as any)?.role;
+        if (role) break;
       } catch {
-        window.location.href = '/compte/informations';
+        // ignore — on retentera
       }
+      await new Promise(r => setTimeout(r, 150));
     }
+
+    window.location.href = (role === 'admin' || role === 'employe')
+      ? '/admin/reservations'
+      : '/compte/informations';
   };
 
   return (
@@ -103,13 +116,6 @@ function ConnexionContent() {
               <Link href="/inscription" className="font-body text-sm font-medium" style={{ color: '#D4A017' }}>
                 Créer un compte
               </Link>
-            </div>
-
-            <div className="mt-6 p-3 rounded text-xs font-body text-white/40 text-center"
-              style={{ backgroundColor: 'rgba(212,160,23,0.08)', border: '1px solid rgba(212,160,23,0.15)' }}>
-              <p className="font-semibold text-yellow-400/60 mb-1">Comptes de démo</p>
-              <p>Client : dupont.b@gmail.com / password123</p>
-              <p>Admin  : admin@goldcut.com / admin123</p>
             </div>
           </div>
         </div>

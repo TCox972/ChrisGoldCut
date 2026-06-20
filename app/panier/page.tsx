@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -24,10 +24,16 @@ export default function PanierPage() {
   const [errMsg,  setErrMsg]  = useState('');
 
   // Infos client (pré-rempli si connecté)
-  const [info, setInfo] = useState({
-    nom:   (session?.user as any)?.prenom ?? '',
-    email: session?.user?.email ?? '',
-  });
+  const [info, setInfo] = useState({ nom: '', email: '' });
+
+  // Pré-remplit dès que la session est disponible (sans écraser les saisies manuelles)
+  useEffect(() => {
+    if (!session?.user) return;
+    setInfo(prev => ({
+      nom:   prev.nom   || (session.user as any)?.prenom || '',
+      email: prev.email || session.user?.email           || '',
+    }));
+  }, [session?.user]);
 
   // ─── Validation du panier → POST /api/commandes ───────────────────────────
   const valider = async () => {
@@ -61,8 +67,11 @@ export default function PanierPage() {
       if (!res.ok) {
         setErrMsg(data.error ?? 'Une erreur est survenue.');
       } else {
-        clearCart();
+        // Passer en "success" AVANT de vider le panier : si l'utilisateur navigue
+        // entre les deux setState (race minime), l'écran de confirmation est déjà
+        // monté et n'affichera pas le panier rempli.
         setStep('success');
+        clearCart();
       }
     } catch {
       setErrMsg('Erreur réseau. Vérifiez votre connexion.');

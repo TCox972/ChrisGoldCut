@@ -99,6 +99,24 @@ ReservationSchema.pre('save', function (next) {
 ReservationSchema.index({ userId: 1, date: -1 });
 ReservationSchema.index({ employeId: 1, date: -1 });
 ReservationSchema.index({ statut: 1, date: 1 });
+ReservationSchema.index({ date: 1 });
+
+// Index unique partiel : empêche deux RDV "à-venir" sur le même employé au même
+// instant de départ. Protège contre les double-bookings issus de race conditions
+// (deux POST simultanés qui passent tous deux le check de disponibilité).
+// employeId null (mode "sans préférence") n'est PAS contraint car l'assignation
+// se fait après — le check de disponibilité serveur reste la première barrière.
+ReservationSchema.index(
+  { employeId: 1, date: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      employeId: { $exists: true, $type: 'objectId' },
+      statut: 'a-venir',
+    },
+    name: 'unique_employe_slot_a_venir',
+  },
+);
 
 const Reservation: Model<IReservation> =
   mongoose.models.Reservation ??

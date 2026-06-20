@@ -28,8 +28,9 @@ export async function GET(req: NextRequest) {
       year = now.getFullYear();
       m0   = now.getMonth();
     }
-    const start = new Date(year, m0,     1, 0, 0, 0, 0);
-    const end   = new Date(year, m0 + 1, 0, 23, 59, 59, 999);
+    // Bornes UTC alignées avec le stockage UTC des dates de RDV
+    const start = new Date(Date.UTC(year, m0,     1, 0, 0, 0, 0));
+    const end   = new Date(Date.UTC(year, m0 + 1, 0, 23, 59, 59, 999));
 
     // Prix par prestation
     const allPresta = await Prestation.find().select('nom prix').lean();

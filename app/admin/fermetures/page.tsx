@@ -135,14 +135,19 @@ export default function AdminFermeturesPage() {
       cells.push(
         <button
           key={d}
-          onClick={() => isClosed ? undefined : handleDayClick(dateStr)}
+          type="button"
+          // Un jour passé non fermé ne peut plus l'être (fermerait des RDV déjà
+          // honorés). Un jour passé déjà fermé reste affiché mais non interactif.
+          disabled={isPast && !isClosed}
+          onClick={() => (isClosed || isPast) ? undefined : handleDayClick(dateStr)}
+          aria-label={isPast && !isClosed ? `${dateStr} (passé)` : dateStr}
           className={`relative w-12 h-12 rounded-lg text-sm font-body transition-colors
             ${isClosed
               ? 'bg-red-100 text-red-700 font-bold border-2 border-red-300 cursor-default'
               : isToday
                 ? 'ring-2 ring-yellow-400 text-gray-900 font-semibold hover:bg-gray-100 cursor-pointer'
                 : isPast
-                  ? 'text-gray-300 cursor-pointer'
+                  ? 'text-gray-300 cursor-not-allowed'
                   : 'text-gray-600 hover:bg-gray-100 cursor-pointer'
             }`}
         >

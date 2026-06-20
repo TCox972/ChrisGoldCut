@@ -2,36 +2,59 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import BlockedSlot from '@/models/BlockedSlot';
 import { requireStaff } from '@/lib/auth';
+import { dayStartUTC, dayEndUTC } from '@/lib/dates';
 
 // ─── POST /api/blocked-slots/bulk ────────────────────────────────────────────
-// Body: { dates: [...], heures: [...], action: "block"|"unblock", employeId?: "xxx"|null }
+// Body: {
+//   slots: [{ date: "YYYY-MM-DD", heures: ["09:00", "09:30", ...] }, ...],
+//   action: "block" | "unblock",
+//   employeId?: "xxx" | null
+// }
+// Chaque date a SES propres heures (fix : avant on appliquait toutes les heures
+// à toutes les dates, ce qui bloquait par erreur des créneaux non sélectionnés).
+type SlotEntry = { date: string; heures: string[] };
+
 export async function POST(req: NextRequest) {
   const { session, error } = await requireStaff();
   if (error) return error;
 
   try {
     await connectDB();
-    const { dates, heures, action, employeId: reqEmployeId } = await req.json();
+    const body = await req.json();
+    const { action, employeId: reqEmployeId } = body;
 
-    if (!Array.isArray(dates) || !Array.isArray(heures) || !['block', 'unblock'].includes(action)) {
+    // Acceptation de deux formats :
+    //  - nouveau : { slots: [{date, heures}], ... }
+    //  - ancien  : { dates: [...], heures: [...], ... }  (legacy, conservé pour
+    //              compatibilité, mais à éviter — applique heures à chaque date)
+    let slots: SlotEntry[];
+    if (Array.isArray(body.slots)) {
+      slots = body.slots;
+    } else if (Array.isArray(body.dates) && Array.isArray(body.heures)) {
+      slots = body.dates.map((date: string) => ({ date, heures: body.heures as string[] }));
+    } else {
       return NextResponse.json(
-        { error: 'dates (string[]), heures (string[]) et action ("block"|"unblock") requis.' },
-        { status: 400 }
+        { error: 'slots ([{date, heures}]) et action ("block"|"unblock") requis.' },
+        { status: 400 },
       );
+    }
+
+    if (!['block', 'unblock'].includes(action)) {
+      return NextResponse.json({ error: 'action invalide.' }, { status: 400 });
     }
 
     const user = session!.user as any;
     const isAdmin = user.role === 'admin';
-    let effectiveEmployeId: string | null = null;
-    if (user.role === 'employe') {
-      effectiveEmployeId = user.id;
-    } else {
-      effectiveEmployeId = reqEmployeId ?? null;
-    }
+    const effectiveEmployeId: string | null = user.role === 'employe'
+      ? user.id
+      : (reqEmployeId ?? null);
 
-    for (const dateStr of dates) {
-      const dayStart = new Date(`${dateStr}T00:00:00`);
-      const dayEnd   = new Date(`${dateStr}T23:59:59`);
+    for (const entry of slots) {
+      if (!entry?.date || !Array.isArray(entry.heures) || entry.heures.length === 0) continue;
+
+      const dayStart = dayStartUTC(entry.date);
+      const dayEnd   = dayEndUTC(entry.date);
+      const heures   = entry.heures;
 
       let doc = await BlockedSlot.findOne({
         date: { $gte: dayStart, $lte: dayEnd },
@@ -42,32 +65,32 @@ export async function POST(req: NextRequest) {
         if (!doc) {
           await BlockedSlot.create({
             date: dayStart,
-            heures: (heures as string[]).slice().sort(),
+            heures: heures.slice().sort(),
             employeId: effectiveEmployeId,
-            adminHeures: isAdmin ? (heures as string[]).slice().sort() : [],
+            adminHeures: isAdmin ? heures.slice().sort() : [],
           });
         } else {
           const set = new Set(doc.heures);
-          for (const h of heures as string[]) set.add(h);
+          for (const h of heures) set.add(h);
           doc.heures = Array.from(set).sort();
           if (isAdmin) {
             const adminSet = new Set(doc.adminHeures || []);
-            for (const h of heures as string[]) adminSet.add(h);
+            for (const h of heures) adminSet.add(h);
             doc.adminHeures = Array.from(adminSet).sort();
           }
           await doc.save();
         }
       } else {
         if (doc) {
-          // Un employé ne peut pas débloquer les créneaux admin
+          // Un employé ne peut pas débloquer les créneaux posés par un admin
           const adminSet = new Set(doc.adminHeures || []);
           const heuresToUnblock = isAdmin
-            ? (heures as string[])
-            : (heures as string[]).filter((h: string) => !adminSet.has(h));
+            ? heures
+            : heures.filter((h: string) => !adminSet.has(h));
 
           doc.heures = doc.heures.filter((h: string) => !heuresToUnblock.includes(h));
           if (isAdmin) {
-            doc.adminHeures = (doc.adminHeures || []).filter((h: string) => !(heures as string[]).includes(h));
+            doc.adminHeures = (doc.adminHeures || []).filter((h: string) => !heures.includes(h));
           }
           if (doc.heures.length === 0) {
             await BlockedSlot.findByIdAndDelete(doc._id);

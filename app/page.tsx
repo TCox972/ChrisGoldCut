@@ -44,7 +44,11 @@ export default function HomePage() {
             <p className="font-display text-xl md:text-2xl tracking-[0.4em] uppercase text-yellow-400">CHRISTOPHER</p>
             <h1 className="font-display text-5xl md:text-7xl font-black tracking-[0.15em] uppercase text-white leading-none">
               GOLD CUT
+              <span className="sr-only"> — Coiffeur Homme à Ducos, Martinique</span>
             </h1>
+            <p className="font-body text-sm md:text-base tracking-[0.1em] uppercase text-white/80 mt-3">
+              Salon de coiffure homme · Ducos · Martinique
+            </p>
           </div>
           <Link href="/reservation" className="btn-gold animate-fade-up delay-300 opacity-0-init">
             Réservez votre place

@@ -7,6 +7,7 @@ import Prestation from '@/models/Prestation';
 import { requireAuth } from '@/lib/auth';
 import { dateToSlot, generateAllSlots, getOccupiedSlots, isSlotAvailable, parseDuree } from '@/lib/slots';
 import { notifyCancellation, notifyDelay } from '@/lib/notifications';
+import { dayStartUTC, dayEndUTC, toDateStrUTC } from '@/lib/dates';
 
 type Params = { params: { id: string } };
 
@@ -75,10 +76,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           return NextResponse.json({ error: 'Impossible de choisir un créneau passé.' }, { status: 400 });
         }
 
-        // Vérifier jour de fermeture
-        const dateStr  = `${newDate.getFullYear()}-${String(newDate.getMonth() + 1).padStart(2, '0')}-${String(newDate.getDate()).padStart(2, '0')}`;
-        const dayStart = new Date(`${dateStr}T00:00:00`);
-        const dayEnd   = new Date(`${dateStr}T23:59:59`);
+        // Vérifier jour de fermeture (bornes UTC pour rester TZ-indépendant)
+        const dateStr  = toDateStrUTC(newDate);
+        const dayStart = dayStartUTC(dateStr);
+        const dayEnd   = dayEndUTC(dateStr);
 
         const closed = await ClosedDay.findOne({ date: { $gte: dayStart, $lte: dayEnd } }).lean();
         if (closed) {
@@ -231,9 +232,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
         // Revalider la disponibilité (en excluant le RDV courant)
         const d = new Date(rdv.date);
-        const dateStr  = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        const dayStart = new Date(`${dateStr}T00:00:00`);
-        const dayEnd   = new Date(`${dateStr}T23:59:59`);
+        const dateStr  = toDateStrUTC(d);
+        const dayStart = dayStartUTC(dateStr);
+        const dayEnd   = dayEndUTC(dateStr);
 
         const empRdvs = await Reservation.find({
           _id:       { $ne: rdv._id },
@@ -270,6 +271,69 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       for (const key of allowed) {
         if (body[key] !== undefined) (rdv as any)[key] = body[key];
       }
+
+      // Re-validation systématique du créneau si date OU employé OU durée
+      // explicite change (la branche prestations plus haut a déjà revalidé).
+      const moveChanged =
+        body.date !== undefined ||
+        body.employeId !== undefined ||
+        (body.dureeMinutes !== undefined && body.prestations === undefined);
+
+      if (moveChanged && rdv.statut !== 'annule') {
+        const newDate = new Date(rdv.date);
+        if (isNaN(newDate.getTime())) {
+          return NextResponse.json({ error: 'Date invalide.' }, { status: 400 });
+        }
+        const newSlot = dateToSlot(newDate);
+        if (!generateAllSlots().includes(newSlot)) {
+          return NextResponse.json(
+            { error: 'Créneau horaire invalide (les RDV se font toutes les demi-heures).' },
+            { status: 400 },
+          );
+        }
+
+        const dateStr  = toDateStrUTC(newDate);
+        const dayStart = dayStartUTC(dateStr);
+        const dayEnd   = dayEndUTC(dateStr);
+
+        // Jour de fermeture du salon
+        const closedDay = await ClosedDay.findOne({
+          date: { $gte: dayStart, $lte: dayEnd },
+        }).lean();
+        if (closedDay) {
+          return NextResponse.json(
+            { error: 'Le salon est fermé ce jour-là.' },
+            { status: 409 },
+          );
+        }
+
+        const targetEmployeId = rdv.employeId ?? null;
+        const empRdvs = await Reservation.find({
+          _id:       { $ne: rdv._id },
+          date:      { $gte: dayStart, $lte: dayEnd },
+          statut:    { $ne: 'annule' },
+          employeId: targetEmployeId,
+        }).select('date dureeMinutes').lean();
+
+        const blockedDocs = await BlockedSlot.find({
+          date: { $gte: dayStart, $lte: dayEnd },
+          $or:  [{ employeId: null }, { employeId: targetEmployeId }],
+        }).lean();
+
+        const occupiedSet = getOccupiedSlots(empRdvs);
+        const blockedSet  = new Set<string>();
+        for (const doc of blockedDocs) {
+          for (const h of doc.heures) blockedSet.add(h);
+        }
+
+        const dureeCheck = Number(rdv.dureeMinutes) || 30;
+        if (!isSlotAvailable(newSlot, dureeCheck, occupiedSet, blockedSet)) {
+          return NextResponse.json(
+            { error: 'Ce créneau n\'est pas disponible (chevauchement avec une autre réservation ou un blocage).' },
+            { status: 409 },
+          );
+        }
+      }
     }
 
     // ── Annulation par le staff avec motif → notifications ──────────────
@@ -287,7 +351,19 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       }, body.motifAnnulation);
     }
 
-    await rdv.save();
+    try {
+      await rdv.save();
+    } catch (e: any) {
+      // E11000 sur l'index partiel unique (employeId, date) : un autre RDV
+      // occupe déjà ce créneau pour cet employé.
+      if (e?.code === 11000) {
+        return NextResponse.json(
+          { error: 'Cet employé est déjà réservé sur ce créneau.' },
+          { status: 409 },
+        );
+      }
+      throw e;
+    }
 
     // Relecture via driver natif pour garantir la présence des champs
     // éventuellement non reflétés dans le schéma Mongoose en cache HMR.

@@ -8,6 +8,7 @@ import User from '@/models/User';
 import { generateUniqueNumero } from '@/models/UsedNumero';
 import { requireAuth, getSession } from '@/lib/auth';
 import { getOccupiedSlots, isSlotAvailable, parseDuree, dateToSlot, generateAllSlots } from '@/lib/slots';
+import { dayStartUTC, dayEndUTC, toDateStrUTC } from '@/lib/dates';
 import { notifyBookingConfirmation } from '@/lib/notifications';
 
 // ─── GET /api/reservations ─────────────────────────────────────────────────────
@@ -51,9 +52,10 @@ export async function GET(req: NextRequest) {
 
     if (month) {
       const [y, m] = month.split('-').map(Number);
+      // Bornes UTC alignées avec le stockage UTC des dates de RDV
       filter.date = {
-        $gte: new Date(y, m - 1, 1),
-        $lte: new Date(y, m, 0, 23, 59, 59),
+        $gte: new Date(Date.UTC(y, m - 1, 1, 0, 0, 0)),
+        $lte: new Date(Date.UTC(y, m, 0, 23, 59, 59, 999)),
       };
     }
 
@@ -88,8 +90,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Vérifier si le client est blacklisté
-    const clientUser = await User.findOne({ email: clientEmail.toLowerCase() }).select('blackliste').lean();
+    // Vérifier si le client est blacklisté + identifier le compte associé
+    // pour rattacher automatiquement la réservation s'il existe déjà sous cet
+    // email (cas d'un client qui réserve en invité mais a un compte non connecté).
+    const clientUser = await User.findOne({ email: clientEmail.toLowerCase() })
+      .select('_id blackliste')
+      .lean();
     if (clientUser?.blackliste) {
       return NextResponse.json(
         { error: 'blackliste' },
@@ -107,10 +113,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Vérifier jour de fermeture
-    const dateStr  = `${rdvDate.getFullYear()}-${String(rdvDate.getMonth() + 1).padStart(2, '0')}-${String(rdvDate.getDate()).padStart(2, '0')}`;
-    const dayStart = new Date(`${dateStr}T00:00:00`);
-    const dayEnd   = new Date(`${dateStr}T23:59:59`);
+    // Vérifier jour de fermeture (bornes en UTC pour rester TZ-indépendant)
+    const dateStr  = toDateStrUTC(rdvDate);
+    const dayStart = dayStartUTC(dateStr);
+    const dayEnd   = dayEndUTC(dateStr);
 
     const closedDay = await ClosedDay.findOne({
       date: { $gte: dayStart, $lte: dayEnd },
@@ -122,12 +128,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Calculer la durée si non fournie
-    let duree = dureeMinutes ?? 30;
-    if (!dureeMinutes && prestations.length > 0) {
-      const presta = await Prestation.findOne({ nom: prestations[0] }).lean();
-      if (presta) duree = parseDuree(presta.duree);
+    // Vérifier que TOUTES les prestations soumises existent ET sont actives.
+    // (Le client charge la liste au montage : si l'admin désactive une
+    // prestation pendant que le client remplit le formulaire, le client peut
+    // soumettre une prestation qui n'est plus proposée → on refuse ici.)
+    const activePrestations = await Prestation.find({
+      nom: { $in: prestations },
+      actif: true,
+    }).lean();
+    const activeNames = new Set(activePrestations.map(p => p.nom));
+    const unavailable = prestations.filter((nom: string) => !activeNames.has(nom));
+    if (unavailable.length > 0) {
+      return NextResponse.json(
+        {
+          error: unavailable.length === 1
+            ? `La prestation « ${unavailable[0]} » n'est plus disponible.`
+            : `Ces prestations ne sont plus disponibles : ${unavailable.join(', ')}.`,
+        },
+        { status: 409 },
+      );
     }
+
+    // Calculer la durée si non fournie : somme de TOUTES les prestations
+    let duree = dureeMinutes ?? 0;
+    if (!dureeMinutes && prestations.length > 0) {
+      const dureeMap = new Map(activePrestations.map(p => [p.nom, parseDuree(p.duree)]));
+      duree = prestations.reduce(
+        (sum: number, nom: string) => sum + (dureeMap.get(nom) ?? 30),
+        0,
+      );
+    }
+    if (!duree || duree < 30) duree = 30;
 
     // Déterminer l'employé
     let assignedEmployeId: string | null = requestedEmployeId || null;
@@ -210,19 +241,38 @@ export async function POST(req: NextRequest) {
     // Génération d'un numéro unique 6 caractères (réservé dans UsedNumero)
     const numero = await generateUniqueNumero('reservation');
 
-    const reservation = await Reservation.create({
-      numero,
-      userId:       session?.user ? (session.user as any).id : null,
-      employeId:    assignedEmployeId,
-      clientNom,
-      clientEmail,
-      clientTel,
-      pourQui,
-      prestations,
-      dureeMinutes: duree,
-      date:         rdvDate,
-      achats,
-    });
+    // userId : session > compte existant matché par email > null (invité pur)
+    const resolvedUserId = session?.user
+      ? (session.user as any).id
+      : (clientUser?._id ?? null);
+
+    let reservation;
+    try {
+      reservation = await Reservation.create({
+        numero,
+        userId:       resolvedUserId,
+        employeId:    assignedEmployeId,
+        clientNom,
+        clientEmail,
+        clientTel,
+        pourQui,
+        prestations,
+        dureeMinutes: duree,
+        date:         rdvDate,
+        achats,
+      });
+    } catch (e: any) {
+      // E11000 : conflit unique sur (employeId, date, statut: a-venir).
+      // Une autre réservation a été créée juste avant — race condition gérée
+      // proprement plutôt que de laisser passer un double-booking.
+      if (e?.code === 11000) {
+        return NextResponse.json(
+          { error: 'Ce créneau vient d\'être réservé par un autre client. Veuillez choisir un autre horaire.' },
+          { status: 409 },
+        );
+      }
+      throw e;
+    }
 
     // Envoi de l'email de confirmation (non bloquant)
     notifyBookingConfirmation({

@@ -44,7 +44,10 @@ export default function MesAchatsPage() {
   useEffect(() => {
     if (authLoading || !user) return;
     fetch('/api/commandes')
-      .then(r => r.json())
+      .then(async r => {
+        if (!r.ok) throw new Error(`Erreur ${r.status}`);
+        return r.json();
+      })
       .then((d: Commande[]) => {
         if (!Array.isArray(d)) { setCommandes([]); return; }
         setCommandes(d.filter(c => c.statut !== 'annulee'));
@@ -73,11 +76,18 @@ export default function MesAchatsPage() {
 
   // ─── Suppression après confirmation ───────────────────────────────────────
   const supprimer = async (id: string) => {
-    const res = await fetch(`/api/commandes/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      setCommandes(prev => prev.filter(c => c._id !== id));
+    try {
+      const res = await fetch(`/api/commandes/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setCommandes(prev => prev.filter(c => c._id !== id));
+      } else {
+        setErreur('Impossible d\'annuler cette commande. Réessayez.');
+      }
+    } catch {
+      setErreur('Erreur réseau. Vérifiez votre connexion.');
+    } finally {
+      setConfirmId(null);
     }
-    setConfirmId(null);
   };
 
   // ─── Démarrer l'édition des quantités ────────────────────────────────────
@@ -98,18 +108,25 @@ export default function MesAchatsPage() {
       quantite:  draftQty[a.produitId] ?? a.quantite,
     }));
 
-    const res = await fetch(`/api/commandes/${commande._id}`, {
-      method:  'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ articles }),
-    });
+    try {
+      const res = await fetch(`/api/commandes/${commande._id}`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ articles }),
+      });
 
-    if (res.ok) {
-      const updated = await res.json();
-      setCommandes(prev => prev.map(c => c._id === commande._id ? updated : c));
-      setEditId(null);
+      if (res.ok) {
+        const updated = await res.json();
+        setCommandes(prev => prev.map(c => c._id === commande._id ? updated : c));
+        setEditId(null);
+      } else {
+        setErreur('Impossible d\'enregistrer les modifications. Réessayez.');
+      }
+    } catch {
+      setErreur('Erreur réseau. Vérifiez votre connexion.');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   // ─── Helpers ─────────────────────────────────────────────────────────────

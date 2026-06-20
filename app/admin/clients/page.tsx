@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Search, User, Users, Loader2, ChevronLeft, Ban, ShieldCheck, Gift, Calendar, Scissors, Clock, Star } from 'lucide-react';
+import ConfirmModal from '@/components/admin/ConfirmModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,23 +39,53 @@ export default function AdminClientsPage() {
   const [tab,      setTab]      = useState<'actifs' | 'blacklistes'>('actifs');
   const [toggling, setToggling] = useState(false);
 
+  // Toast d'erreur global (auto-disparition après 5 s)
+  const [actionError, setActionError] = useState('');
+  useEffect(() => {
+    if (!actionError) return;
+    const t = setTimeout(() => setActionError(''), 5000);
+    return () => clearTimeout(t);
+  }, [actionError]);
+
+  // ─── Pagination ─────────────────────────────────────────────────────────────
+  const PAGE_SIZE = 50;
+  const [page, setPage]   = useState(1);
+  const [total, setTotal] = useState(0);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
   // ─── Chargement ─────────────────────────────────────────────────────────────
-  const fetchClients = (q?: string) => {
+  const fetchClients = (q?: string, pageNum: number = 1) => {
     setLoading(true);
-    const params = q ? `?q=${encodeURIComponent(q)}` : '';
-    fetch(`/api/clients${params}`)
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    params.set('page', String(pageNum));
+    params.set('limit', String(PAGE_SIZE));
+
+    fetch(`/api/clients?${params.toString()}`)
       .then(r => r.json())
-      .then(d => setClients(Array.isArray(d) ? d : []))
+      .then(d => {
+        if (Array.isArray(d)) {
+          setClients(d);
+          setTotal(d.length);
+        } else {
+          setClients(Array.isArray(d?.clients) ? d.clients : []);
+          setTotal(typeof d?.total === 'number' ? d.total : 0);
+        }
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchClients(); }, []);
+  useEffect(() => { fetchClients(search, page); /* eslint-disable-next-line */ }, [page]);
 
-  // Recherche avec debounce
+  // Recherche avec debounce : reset page 1 dès qu'on tape
   useEffect(() => {
-    const timer = setTimeout(() => fetchClients(search), 300);
+    const timer = setTimeout(() => {
+      setPage(1);
+      fetchClients(search, 1);
+    }, 300);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   // ─── Filtrage par onglet ────────────────────────────────────────────────────
@@ -63,10 +94,17 @@ export default function AdminClientsPage() {
   const displayed   = tab === 'actifs' ? actifs : blacklistes;
 
   // ─── Toggle blacklist ───────────────────────────────────────────────────────
-  const toggleBlacklist = async (client: Client) => {
+  // L'ouverture de la modale est gérée par confirmToggle (UI), l'action serveur
+  // est dans doToggleBlacklist (callback de la modale).
+  const [pendingToggle, setPendingToggle] = useState<Client | null>(null);
+
+  const confirmToggle = (client: Client) => setPendingToggle(client);
+
+  const doToggleBlacklist = async () => {
+    if (!pendingToggle) return;
+    const client = pendingToggle;
     const newVal = !client.blackliste;
     const label = newVal ? 'blacklister' : 'débloquer';
-    if (!confirm(`Voulez-vous ${label} ${client.prenom} ${client.nom} ?`)) return;
 
     setToggling(true);
     try {
@@ -82,19 +120,42 @@ export default function AdminClientsPage() {
         if (selected?._id === client._id) {
           setSelected({ ...selected, blackliste: newVal });
         }
+        setPendingToggle(null);
+      } else {
+        const data = await res.json().catch(() => null);
+        setActionError(data?.error || `Impossible de ${label} ce client. Réessayez.`);
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setActionError('Erreur réseau. Vérifiez votre connexion.');
     } finally {
       setToggling(false);
     }
   };
+
+  // Modale de confirmation partagée (fiche client + liste)
+  const confirmModal = (
+    <ConfirmModal
+      open={!!pendingToggle}
+      title={pendingToggle?.blackliste ? 'Débloquer ce client ?' : 'Blacklister ce client ?'}
+      message={pendingToggle
+        ? pendingToggle.blackliste
+          ? `${pendingToggle.prenom} ${pendingToggle.nom} pourra à nouveau réserver en ligne.`
+          : `${pendingToggle.prenom} ${pendingToggle.nom} ne pourra plus réserver en ligne tant qu'il sera blacklisté.`
+        : null}
+      confirmLabel={pendingToggle?.blackliste ? 'Débloquer' : 'Blacklister'}
+      variant={pendingToggle?.blackliste ? 'default' : 'danger'}
+      loading={toggling}
+      onConfirm={doToggleBlacklist}
+      onCancel={() => setPendingToggle(null)}
+    />
+  );
 
   // ─── Fiche client ───────────────────────────────────────────────────────────
   if (selected) {
     const c = selected;
     return (
       <div>
+        {confirmModal}
         <button onClick={() => setSelected(null)}
           className="mb-6 flex items-center gap-2 font-body text-sm text-gray-400 hover:text-gray-700 transition-colors">
           <ChevronLeft size={14} /> Retour aux clients
@@ -103,7 +164,7 @@ export default function AdminClientsPage() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="font-body text-2xl font-bold text-gray-900">Fiche Client</h1>
           <button
-            onClick={() => toggleBlacklist(c)}
+            onClick={() => confirmToggle(c)}
             disabled={toggling}
             className={`flex items-center gap-2 font-body text-sm font-medium px-4 py-2 rounded-lg transition-colors
               ${c.blackliste
@@ -262,6 +323,22 @@ export default function AdminClientsPage() {
   // ─── Liste des clients ──────────────────────────────────────────────────────
   return (
     <div>
+      {confirmModal}
+      {/* Toast d'erreur (auto-disparition) */}
+      {actionError && (
+        <div className="fixed top-6 right-6 z-50 max-w-sm bg-red-600 text-white rounded-lg shadow-xl px-4 py-3 flex items-start gap-3">
+          <span className="font-body text-sm flex-1">{actionError}</span>
+          <button
+            type="button"
+            onClick={() => setActionError('')}
+            aria-label="Fermer"
+            className="text-white/70 hover:text-white"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <h1 className="font-body text-2xl font-bold text-gray-900 mb-6">Clients</h1>
 
       {/* Barre de recherche */}
@@ -345,7 +422,7 @@ export default function AdminClientsPage() {
                   </td>
                   <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
                     <button
-                      onClick={() => toggleBlacklist(c)}
+                      onClick={() => confirmToggle(c)}
                       disabled={toggling}
                       title={c.blackliste ? 'Débloquer' : 'Blacklister'}
                       className={`transition-colors disabled:opacity-50
@@ -361,6 +438,35 @@ export default function AdminClientsPage() {
               ))}
             </tbody>
           </table>
+        )}
+
+        {/* Pagination */}
+        {!loading && total > PAGE_SIZE && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
+            <p className="font-body text-xs text-gray-500">
+              Page <span className="font-semibold text-gray-700">{page}</span> sur{' '}
+              <span className="font-semibold text-gray-700">{totalPages}</span> ·{' '}
+              {total} client{total > 1 ? 's' : ''}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page <= 1 || loading}
+                className="font-body text-xs px-3 py-1.5 rounded border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                ← Précédent
+              </button>
+              <button
+                type="button"
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages || loading}
+                className="font-body text-xs px-3 py-1.5 rounded border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Suivant →
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

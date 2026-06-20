@@ -75,15 +75,26 @@ export default function Navbar({ dark = true }: { dark?: boolean }) {
             </Link>
           )}
           {isAuthenticated && (
-            <button onClick={() => logout()}
-              className={`font-display text-[10px] tracking-[0.22em] uppercase transition-colors duration-200 ${base}`}>
+            <button
+              type="button"
+              onClick={() => logout()}
+              aria-label="Se déconnecter"
+              title="Se déconnecter"
+              className={`font-display text-[10px] tracking-[0.22em] uppercase transition-colors duration-200 ${base}`}
+            >
               Déco.
             </button>
           )}
         </div>
 
         {/* Mobile toggle */}
-        <button className={`md:hidden ${dark ? 'text-white' : 'text-gray-800'}`} onClick={() => setOpen(!open)}>
+        <button
+          type="button"
+          aria-label={open ? 'Fermer le menu' : 'Ouvrir le menu'}
+          aria-expanded={open}
+          className={`md:hidden ${dark ? 'text-white' : 'text-gray-800'}`}
+          onClick={() => setOpen(!open)}
+        >
           {open ? <X size={22} /> : <Menu size={22} />}
         </button>
       </div>

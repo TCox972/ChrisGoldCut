@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
-import { Loader2, Calendar, Clock, Scissors, AlertTriangle, Check } from 'lucide-react';
+import { Loader2, Calendar, Clock, Scissors, AlertTriangle, Check, X } from 'lucide-react';
 import Link from 'next/link';
 
 const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
@@ -25,6 +25,8 @@ export default function MesRdvPage() {
   const [error, setError] = useState('');
   const [cancelling, setCancelling] = useState(false);
   const [cancelled, setCancelled] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [actionError, setActionError] = useState('');
 
   useEffect(() => {
     fetch(`/api/reservations/${id}`)
@@ -38,8 +40,8 @@ export default function MesRdvPage() {
   }, [id]);
 
   const annuler = async () => {
-    if (!confirm('Êtes-vous sûr de vouloir annuler ce rendez-vous ?')) return;
     setCancelling(true);
+    setActionError('');
     try {
       const res = await fetch(`/api/reservations/${id}`, {
         method: 'PATCH',
@@ -49,25 +51,27 @@ export default function MesRdvPage() {
       if (res.ok) {
         setCancelled(true);
         setRdv(prev => prev ? { ...prev, statut: 'annule' } : prev);
+        setConfirmOpen(false);
       } else {
-        const data = await res.json();
-        alert(data.error || 'Erreur lors de l\'annulation.');
+        const data = await res.json().catch(() => null);
+        setActionError(data?.error || 'Erreur lors de l\'annulation.');
       }
     } catch {
-      alert('Erreur réseau.');
+      setActionError('Erreur réseau. Vérifiez votre connexion.');
     } finally {
       setCancelling(false);
     }
   };
 
+  // Affichage en UTC : la date du RDV est stockée en UTC (heure murale du salon)
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
-    return `${JOURS[d.getDay()]} ${d.getDate()} ${MOIS[d.getMonth()]} ${d.getFullYear()}`;
+    return `${JOURS[d.getUTCDay()]} ${d.getUTCDate()} ${MOIS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
   };
 
   const formatHeure = (dateStr: string) => {
     const d = new Date(dateStr);
-    return `${String(d.getHours()).padStart(2, '0')}h${String(d.getMinutes()).padStart(2, '0')}`;
+    return `${String(d.getUTCHours()).padStart(2, '0')}h${String(d.getUTCMinutes()).padStart(2, '0')}`;
   };
 
   const isPast = rdv ? new Date(rdv.date).getTime() < Date.now() : false;
@@ -162,13 +166,12 @@ export default function MesRdvPage() {
                       Reprendre un nouveau rendez-vous
                     </Link>
                     <button
-                      onClick={annuler}
-                      disabled={cancelling}
+                      onClick={() => { setActionError(''); setConfirmOpen(true); }}
                       className="w-full font-body text-sm font-medium
                         text-red-400 border border-red-400/30 rounded-lg px-4 py-2.5
-                        hover:bg-red-400/10 transition-colors disabled:opacity-50"
+                        hover:bg-red-400/10 transition-colors"
                     >
-                      {cancelling ? 'Annulation...' : 'Annuler ce rendez-vous'}
+                      Annuler ce rendez-vous
                     </button>
                   </div>
                 )}
@@ -185,6 +188,69 @@ export default function MesRdvPage() {
         </div>
       </div>
       <Footer />
+
+      {/* ── Modale de confirmation d'annulation ── */}
+      {confirmOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-6"
+          style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}
+          onClick={() => !cancelling && setConfirmOpen(false)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="w-full max-w-sm rounded-lg p-7 relative"
+            style={{ backgroundColor: 'rgba(30,25,15,0.97)', border: '1px solid rgba(212,160,23,0.3)' }}
+          >
+            <button
+              type="button"
+              onClick={() => !cancelling && setConfirmOpen(false)}
+              className="absolute top-3 right-3 text-white/40 hover:text-white transition-colors"
+              aria-label="Fermer"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 rounded-full bg-red-500/15 flex items-center justify-center mb-4">
+                <AlertTriangle size={22} className="text-red-400" />
+              </div>
+              <h3 className="font-display text-base tracking-widest uppercase text-white font-bold mb-2">
+                Annuler ce RDV ?
+              </h3>
+              <p className="font-body text-sm text-white/60 leading-relaxed mb-6">
+                Cette action est définitive. Vous devrez prendre un nouveau rendez-vous si vous changez d'avis.
+              </p>
+
+              {actionError && (
+                <p className="w-full font-body text-xs text-red-400 bg-red-900/20 rounded px-3 py-2 mb-4">
+                  {actionError}
+                </p>
+              )}
+
+              <div className="flex flex-col w-full gap-2">
+                <button
+                  onClick={annuler}
+                  disabled={cancelling}
+                  className="w-full font-body text-sm font-semibold
+                    bg-red-500/20 text-red-300 border border-red-400/40 rounded-lg px-4 py-2.5
+                    hover:bg-red-500/30 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {cancelling
+                    ? <><Loader2 size={14} className="animate-spin" /> Annulation...</>
+                    : 'Confirmer l\'annulation'}
+                </button>
+                <button
+                  onClick={() => setConfirmOpen(false)}
+                  disabled={cancelling}
+                  className="w-full font-body text-sm text-white/60 hover:text-white transition-colors disabled:opacity-60"
+                >
+                  Garder mon rendez-vous
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

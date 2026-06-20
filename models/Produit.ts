@@ -8,7 +8,6 @@ export interface IProduit extends Document {
   prix:              number;
   image:             string;  // URL de l'image principale (rétro-compat)
   images:            string[];// URLs des images (Cloudinary)
-  stock:             number;
   actif:             boolean;
   createdAt:         Date;
   updatedAt:         Date;
@@ -27,7 +26,6 @@ const ProduitSchema = new Schema<IProduit>(
     prix:              { type: Number, required: true, min: 0 },
     image:             { type: String, default: '' },
     images:            [{ type: String }],
-    stock:             { type: Number, default: 0, min: 0 },
     actif:       { type: Boolean, default: true },
   },
   { timestamps: true }

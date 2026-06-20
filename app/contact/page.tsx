@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import PageHero from '@/components/layout/PageHero';
@@ -6,11 +7,30 @@ import { Icon } from '@iconify/react';
 import { horaires } from '@/lib/data';
 import Link from 'next/link';
 
+export const metadata: Metadata = {
+  title: 'Contact — Coiffeur à Ducos, Martinique',
+  description:
+    "Contactez Gold Cut, votre salon de coiffure à Ducos (97224, Martinique). " +
+    "Adresse, téléphone, horaires d'ouverture, Instagram et WhatsApp. " +
+    "Christopher vous accueille du lundi au samedi.",
+  alternates: { canonical: '/contact' },
+  openGraph: {
+    title: 'Contact — Gold Cut, Coiffeur Ducos Martinique',
+    description: 'Adresse, téléphone et horaires de votre coiffeur à Ducos (Martinique).',
+    url: '/contact',
+  },
+};
+
 export default function ContactPage() {
   return (
     <main>
       <Navbar dark />
-      <PageHero title="Contact" backgroundImage="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=1600&q=80" />
+      <PageHero
+        title="Contact"
+        subtitle="Coiffeur · Ducos · Martinique"
+        srTitle="— Contactez votre coiffeur à Ducos, Martinique"
+        backgroundImage="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=1600&q=80"
+      />
 
       {/* Coordonnées */}
       <section className="py-20 px-6 bg-white">

@@ -55,13 +55,14 @@ export function useAuth() {
   const register = async (
     prenom: string,
     email: string,
-    password: string
+    password: string,
+    extras: { nom?: string; telephone?: string } = {},
   ): Promise<{ ok: boolean; error?: string }> => {
     try {
       const res = await fetch('/api/auth/register', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ prenom, email, password }),
+        body:    JSON.stringify({ prenom, email, password, ...extras }),
       });
       const data = await res.json();
       if (!res.ok) return { ok: false, error: data.error ?? 'Erreur inconnue.' };

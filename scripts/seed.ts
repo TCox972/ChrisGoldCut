@@ -65,14 +65,14 @@ const prestations = [
 ];
 
 const produits = [
-  { categorie: 'Barbe',       nom: 'Shampooing barbe',      description: '200 ml', prix: 20, stock: 15 },
-  { categorie: 'Barbe',       nom: 'Sérum pour barbe',      description: '60 ml',  prix: 22, stock: 10 },
-  { categorie: 'Barbe',       nom: 'Crème de barbe',        description: '30 ml',  prix: 20, stock: 12 },
-  { categorie: 'Barbe',       nom: 'Huile de barbe élixir', description: '40 ml',  prix: 30, stock: 8  },
-  { categorie: 'Barbe',       nom: 'Leave-in pour barbe',   description: '150 ml', prix: 25, stock: 7  },
-  { categorie: 'Accessoires', nom: 'Brosse à barbe',        description: 'Unité',  prix: 7,  stock: 20 },
-  { categorie: 'Cheveux',     nom: 'Shampoing cheveux',     description: '250 ml', prix: 18, stock: 10 },
-  { categorie: 'Cheveux',     nom: 'Après-shampoing',       description: '250 ml', prix: 18, stock: 10 },
+  { categorie: 'Barbe',       nom: 'Shampooing barbe',      description: '200 ml', prix: 20 },
+  { categorie: 'Barbe',       nom: 'Sérum pour barbe',      description: '60 ml',  prix: 22 },
+  { categorie: 'Barbe',       nom: 'Crème de barbe',        description: '30 ml',  prix: 20 },
+  { categorie: 'Barbe',       nom: 'Huile de barbe élixir', description: '40 ml',  prix: 30 },
+  { categorie: 'Barbe',       nom: 'Leave-in pour barbe',   description: '150 ml', prix: 25 },
+  { categorie: 'Accessoires', nom: 'Brosse à barbe',        description: 'Unité',  prix: 7  },
+  { categorie: 'Cheveux',     nom: 'Shampoing cheveux',     description: '250 ml', prix: 18 },
+  { categorie: 'Cheveux',     nom: 'Après-shampoing',       description: '250 ml', prix: 18 },
 ];
 
 // ─── Seed ─────────────────────────────────────────────────────────────────────

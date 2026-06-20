@@ -1,8 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
+import Reservation from '@/models/Reservation';
 import { requireAdmin } from '@/lib/auth';
 import crypto from 'crypto';
+import mongoose from 'mongoose';
+
+/**
+ * Génère un mot de passe temporaire lisible (12 caractères alphanumériques sans
+ * caractères ambigus type 0/O, 1/l/I). On utilise crypto.randomInt pour ne pas
+ * dépendre de Math.random.
+ */
+function generateTempPassword(length = 12): string {
+  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let out = '';
+  for (let i = 0; i < length; i++) {
+    out += alphabet[crypto.randomInt(0, alphabet.length)];
+  }
+  return out;
+}
 
 // ─── GET /api/employes ───────────────────────────────────────────────────────
 // Liste tous les employés + l'admin (staff)
@@ -50,8 +66,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Mot de passe temporaire aléatoire (l'employé utilisera "mot de passe oublié")
-    const tempPassword = crypto.randomBytes(16).toString('hex');
+    // Mot de passe temporaire : généré lisible et renvoyé UNE seule fois à
+    // l'admin pour qu'il puisse le communiquer à l'employé. Le hook pre('save')
+    // de User le hashera avant stockage.
+    const tempPassword = generateTempPassword();
 
     const user = await User.create({
       prenom,
@@ -64,7 +82,10 @@ export async function POST(req: NextRequest) {
     });
 
     const { password: _, ...safeUser } = user.toObject();
-    return NextResponse.json(safeUser, { status: 201 });
+    return NextResponse.json(
+      { ...safeUser, tempPassword },
+      { status: 201 },
+    );
   } catch (err) {
     console.error('[POST /api/employes]', err);
     return NextResponse.json({ error: 'Erreur serveur.' }, { status: 500 });
@@ -90,8 +111,20 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Impossible de supprimer ce compte.' }, { status: 400 });
     }
 
+    // Cascade : on dissocie les RDV futurs assignés à cet employé pour qu'ils
+    // ne pointent plus sur un employeId orphelin (l'admin pourra les réassigner).
+    const targetObjectId = new mongoose.Types.ObjectId(id);
+    const now = new Date();
+    const reassigned = await Reservation.updateMany(
+      { employeId: targetObjectId, date: { $gte: now }, statut: { $ne: 'annule' } },
+      { $set: { employeId: null } },
+    );
+
     await User.findByIdAndDelete(id);
-    return NextResponse.json({ message: 'Employé supprimé.' });
+    return NextResponse.json({
+      message: 'Employé supprimé.',
+      reassignedReservations: reassigned.modifiedCount ?? 0,
+    });
   } catch (err) {
     console.error('[DELETE /api/employes]', err);
     return NextResponse.json({ error: 'Erreur serveur.' }, { status: 500 });

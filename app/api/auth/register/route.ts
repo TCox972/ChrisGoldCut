@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
+import Reservation from '@/models/Reservation';
+import CommandeAchat from '@/models/CommandeAchat';
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,6 +42,35 @@ export async function POST(req: NextRequest) {
       telephone,
       role: 'client',
     });
+
+    // ─── Récupération des RDV/commandes invités passés sous le même email ────
+    // Un client peut prendre un RDV sans compte, puis en créer un dans la
+    // foulée. On rattache les enregistrements orphelins (userId: null) qui
+    // partagent l'email saisi pour qu'ils apparaissent dans son espace.
+    const emailRegex = new RegExp(
+      `^${email.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`,
+      'i',
+    );
+    try {
+      const [rdvResult, cmdResult] = await Promise.all([
+        Reservation.updateMany(
+          { userId: null, clientEmail: { $regex: emailRegex } },
+          { $set: { userId: user._id } },
+        ),
+        CommandeAchat.updateMany(
+          { userId: null, clientEmail: { $regex: emailRegex } },
+          { $set: { userId: user._id } },
+        ),
+      ]);
+      console.log(
+        `[register] User ${user._id} récupère ${rdvResult.modifiedCount} RDV ` +
+        `et ${cmdResult.modifiedCount} commande(s) invité(s).`,
+      );
+    } catch (claimErr) {
+      // Ne fait pas échouer l'inscription : le compte est créé, c'est l'essentiel.
+      // Les RDV pourront éventuellement être rattachés plus tard manuellement.
+      console.error('[register] Échec rattachement RDV/commandes invité:', claimErr);
+    }
 
     return NextResponse.json(
       {

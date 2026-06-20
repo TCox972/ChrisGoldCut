@@ -26,14 +26,30 @@ export default function InformationsPage() {
   const [pwdMsg,      setPwdMsg]      = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew,     setShowNew]     = useState(false);
+  const [loadError,   setLoadError]   = useState('');
+  const [saveError,   setSaveError]   = useState('');
 
   // Charge le profil complet depuis l'API (attend que la session soit prête)
   useEffect(() => {
     if (authLoading || !user) return;
+    setLoadError('');
     fetch('/api/me')
-      .then(r => r.json())
-      .then(d => { setData(d); setDraft(d); })
-      .catch(console.error);
+      .then(async r => {
+        if (!r.ok) throw new Error(`Erreur ${r.status}`);
+        return r.json();
+      })
+      .then((d: UserData) => {
+        const safe: UserData = {
+          prenom:          d?.prenom          ?? '',
+          nom:             d?.nom             ?? '',
+          email:           d?.email           ?? '',
+          telephone:       d?.telephone       ?? '',
+          autresPersonnes: Array.isArray(d?.autresPersonnes) ? d.autresPersonnes : [],
+        };
+        setData(safe);
+        setDraft(safe);
+      })
+      .catch(() => setLoadError('Impossible de charger votre profil. Réessayez plus tard.'));
   }, [authLoading, user?.id]);
 
   const handleField = (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -42,18 +58,27 @@ export default function InformationsPage() {
   const save = async () => {
     if (!draft) return;
     setSaving(true);
-    const res = await fetch('/api/me', {
-      method:  'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(draft),
-    });
-    if (res.ok) {
-      const updated = await res.json();
-      setData(updated);
-      setDraft(updated);
-      setEditing(false);
+    setSaveError('');
+    try {
+      const res = await fetch('/api/me', {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(draft),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setData(updated);
+        setDraft(updated);
+        setEditing(false);
+      } else {
+        const err = await res.json().catch(() => null);
+        setSaveError(err?.error || 'Échec de l\'enregistrement. Réessayez.');
+      }
+    } catch {
+      setSaveError('Erreur réseau. Vérifiez votre connexion.');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const changePassword = async () => {
@@ -93,10 +118,21 @@ export default function InformationsPage() {
   };
 
   const removeOther = (idx: number) =>
-    setDraft(d => d ? { ...d, autresPersonnes: d.autresPersonnes.filter((_, i) => i !== idx) } : d);
+    setDraft(d => d ? { ...d, autresPersonnes: (d.autresPersonnes ?? []).filter((_, i) => i !== idx) } : d);
 
   const addOther = () =>
-    setDraft(d => d ? { ...d, autresPersonnes: [...d.autresPersonnes, { prenom: '', nom: '' }] } : d);
+    setDraft(d => d ? { ...d, autresPersonnes: [...(d.autresPersonnes ?? []), { prenom: '', nom: '' }] } : d);
+
+  if (loadError) {
+    return (
+      <div>
+        <CompteNav />
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <p className="font-body text-sm text-red-600">{loadError}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (authLoading || !data) {
     return (
@@ -121,10 +157,15 @@ export default function InformationsPage() {
           </div>
           <div className="flex-1">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(['prenom', 'nom', 'email', 'telephone'] as const).map(field => (
+              {([
+                { key: 'prenom',    label: 'Prénom' },
+                { key: 'nom',       label: 'Nom' },
+                { key: 'email',     label: 'Email' },
+                { key: 'telephone', label: 'Téléphone' },
+              ] as const).map(({ key: field, label }) => (
                 <div key={field}>
-                  <label className="font-body text-xs font-semibold text-gray-700 capitalize block mb-1">
-                    {field.charAt(0).toUpperCase() + field.slice(1)} :
+                  <label className="font-body text-xs font-semibold text-gray-700 block mb-1">
+                    {label} :
                   </label>
                   {editing ? (
                     <input name={field} value={(display as any)[field]} onChange={handleField}
@@ -136,6 +177,9 @@ export default function InformationsPage() {
                 </div>
               ))}
             </div>
+            {saveError && (
+              <p className="font-body text-xs text-red-600 bg-red-50 rounded px-3 py-2 mt-4">{saveError}</p>
+            )}
             <div className="flex gap-3 mt-6">
               {!editing ? (
                 <button onClick={() => setEditing(true)}
@@ -149,7 +193,7 @@ export default function InformationsPage() {
                     {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
                     Enregistrer
                   </button>
-                  <button onClick={() => { setEditing(false); setDraft(data); }}
+                  <button onClick={() => { setEditing(false); setDraft(data); setSaveError(''); }}
                     className="btn-gold-outline text-xs px-5 py-2">
                     Annuler
                   </button>
@@ -289,12 +333,12 @@ export default function InformationsPage() {
             ))}
           </tbody>
         </table>
-        {editing && (editing ? draft! : data).autresPersonnes.length < 3 && (
+        {editing && ((editing ? draft! : data).autresPersonnes?.length ?? 0) < 3 && (
           <button onClick={addOther} className="flex items-center gap-2 mt-4 text-gray-400 hover:text-gray-700 transition-colors">
             <Plus size={14} /><span className="font-body text-sm">Ajouter une personne</span>
           </button>
         )}
-        {editing && (editing ? draft! : data).autresPersonnes.length >= 3 && (
+        {editing && ((editing ? draft! : data).autresPersonnes?.length ?? 0) >= 3 && (
           <p className="font-body text-xs text-yellow-600 mt-4">
             Nombre maximum de personnes atteint (3).
           </p>

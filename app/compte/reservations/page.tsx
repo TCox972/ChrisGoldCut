@@ -42,9 +42,12 @@ function toDateStr(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+// Affichage en UTC : la date du RDV est stockée comme heure murale du salon
+// en UTC. On lit avec les accesseurs UTC pour rester cohérent avec ce qui
+// a été saisi, quel que soit le fuseau du navigateur du client.
 function formatDate(iso: string) {
   const d = new Date(iso);
-  return `${d.getDate()} ${MOIS[d.getMonth()]} ${d.getFullYear()} — ${String(d.getHours()).padStart(2,'0')}h${String(d.getMinutes()).padStart(2,'0')}`;
+  return `${d.getUTCDate()} ${MOIS[d.getUTCMonth()]} ${d.getUTCFullYear()} — ${String(d.getUTCHours()).padStart(2,'0')}h${String(d.getUTCMinutes()).padStart(2,'0')}`;
 }
 
 /** RDV considéré comme passé : heure du RDV + 1h < maintenant */
@@ -63,14 +66,23 @@ export default function MesReservationsPage() {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [editRdv,   setEditRdv]   = useState<Rdv | null>(null);
   const [tab,       setTab]       = useState<Tab>('a-venir');
+  const [loadError, setLoadError] = useState('');
+  const [actionError, setActionError] = useState('');
 
   // ─── Chargement ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (authLoading || !user) return;
+    setLoadError('');
+    const safeFetch = (url: string) =>
+      fetch(url).then(async r => {
+        if (!r.ok) throw new Error(`Erreur ${r.status} sur ${url}`);
+        return r.json();
+      });
+
     Promise.all([
-      fetch('/api/reservations?view=client').then(r => r.json()),
-      fetch('/api/staff').then(r => r.json()),
-      fetch('/api/fidelite').then(r => r.json()),
+      safeFetch('/api/reservations?view=client'),
+      safeFetch('/api/staff'),
+      safeFetch('/api/fidelite').catch(() => ({ personnes: [] })),
     ])
       .then(([rdvData, staffData, fideliteData]) => {
         setRdvs(Array.isArray(rdvData) ? rdvData : []);
@@ -79,16 +91,24 @@ export default function MesReservationsPage() {
           setFidelitePersonnes(fideliteData.personnes);
         }
       })
-      .catch(console.error)
+      .catch(() => setLoadError('Impossible de charger vos réservations. Réessayez plus tard.'))
       .finally(() => setLoading(false));
   }, [authLoading, user?.id]);
 
   const supprimer = async (id: string) => {
-    const res = await fetch(`/api/reservations/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      setRdvs(prev => prev.filter(r => r._id !== id));
+    setActionError('');
+    try {
+      const res = await fetch(`/api/reservations/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setRdvs(prev => prev.filter(r => r._id !== id));
+      } else {
+        setActionError('Impossible d\'annuler ce rendez-vous. Réessayez.');
+      }
+    } catch {
+      setActionError('Erreur réseau. Vérifiez votre connexion.');
+    } finally {
+      setConfirmId(null);
     }
-    setConfirmId(null);
   };
 
   const getCoiffeurName = (id?: string | null): string => {
@@ -195,9 +215,19 @@ export default function MesReservationsPage() {
         ))}
       </div>
 
+      {actionError && (
+        <p className="font-body text-sm text-red-600 bg-red-50 border border-red-200 rounded px-4 py-2 mb-4">
+          {actionError}
+        </p>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center min-h-48 gap-2 text-white/60">
           <Loader2 size={18} className="animate-spin" /> Chargement...
+        </div>
+      ) : loadError ? (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <p className="font-body text-sm text-red-600">{loadError}</p>
         </div>
       ) : (
         <div className="bg-white rounded-lg divide-y divide-gray-100">
@@ -389,19 +419,19 @@ function EditRdvModal({
   });
 
   const submit = async () => {
-    if (!selectedHour) return;
+    if (!selectedHour || !/^\d{2}:\d{2}$/.test(selectedHour)) return;
     setSaving(true);
     setError('');
 
-    const [h, m] = selectedHour.split(':').map(Number);
-    const newDate = new Date(selectedDate + 'T00:00:00');
-    newDate.setHours(h, m, 0, 0);
+    // Date envoyée en UTC explicite (.000Z) avec l'heure murale du salon.
+    // Cohérent avec le stockage UTC côté serveur, TZ-indépendant.
+    const dateStr = `${selectedDate}T${selectedHour}:00.000Z`;
 
     try {
       const res = await fetch(`/api/reservations/${rdv._id}`, {
         method:  'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ date: newDate.toISOString() }),
+        body:    JSON.stringify({ date: dateStr }),
       });
       const data = await res.json();
       if (!res.ok) {

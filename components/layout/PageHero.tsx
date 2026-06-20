@@ -1,9 +1,12 @@
 type PageHeroProps = {
   title: string;
+  subtitle?: string;
+  /** Texte additionnel masqué visuellement mais lu par les moteurs de recherche. */
+  srTitle?: string;
   backgroundImage?: string;
 };
 
-export default function PageHero({ title, backgroundImage }: PageHeroProps) {
+export default function PageHero({ title, subtitle, srTitle, backgroundImage }: PageHeroProps) {
   const bg = backgroundImage || 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=1600&q=80';
 
   return (
@@ -23,7 +26,13 @@ export default function PageHero({ title, backgroundImage }: PageHeroProps) {
 
         <h1 className="font-display text-3xl md:text-4xl font-bold tracking-[0.25em] uppercase text-white">
           {title}
+          {srTitle && <span className="sr-only"> {srTitle}</span>}
         </h1>
+        {subtitle && (
+          <p className="font-body text-xs md:text-sm tracking-[0.15em] uppercase text-white/70">
+            {subtitle}
+          </p>
+        )}
 
         {/* Bottom decoration */}
         <div className="h-px w-16" style={{ background: 'linear-gradient(90deg, transparent, #D4A017, transparent)' }} />

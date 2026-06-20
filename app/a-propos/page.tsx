@@ -1,9 +1,18 @@
+import type { Metadata } from 'next';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import PageHero from '@/components/layout/PageHero';
 import SectionTitle from '@/components/ui/SectionTitle';
 import ContactInfo from '@/components/public/ContactInfo';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'À propos — Coiffeur Gold Cut à Ducos, Martinique',
+  description:
+    "Découvrez l'histoire de Gold Cut, salon de coiffure homme à Ducos (Martinique) " +
+    "et l'expertise de Christopher : coupes, dégradés, barbe et soins capillaires.",
+  alternates: { canonical: '/a-propos' },
+};
 
 export default function AProposPage() {
   return (

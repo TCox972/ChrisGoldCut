@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import BlockedSlot from '@/models/BlockedSlot';
 import { requireStaff } from '@/lib/auth';
+import { dayStartUTC, dayEndUTC } from '@/lib/dates';
 
 // ─── GET /api/blocked-slots?month=2026-04&employeId=xxx ─────────────────────
 // Retourne les créneaux bloqués pour un mois.
@@ -21,8 +22,11 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB();
     const [year, m] = month.split('-').map(Number);
-    const start = new Date(year, m - 1, 1);
-    const end   = new Date(year, m, 0, 23, 59, 59);
+    // Bornes UTC alignées avec le stockage (dayStartUTC/dayEndUTC). Sur un
+    // serveur dans un fuseau non-UTC, `new Date(y, m-1, 1)` shiftait les
+    // bornes et excluait les blocages du 1er du mois.
+    const start = new Date(Date.UTC(year, m - 1, 1, 0, 0, 0));
+    const end   = new Date(Date.UTC(year, m, 0, 23, 59, 59, 999));
 
     const filter: Record<string, unknown> = {
       date: { $gte: start, $lte: end },
@@ -74,8 +78,8 @@ export async function POST(req: NextRequest) {
       effectiveEmployeId = reqEmployeId ?? null;
     }
 
-    const dayStart = new Date(`${dateStr}T00:00:00`);
-    const dayEnd   = new Date(`${dateStr}T23:59:59`);
+    const dayStart = dayStartUTC(dateStr);
+    const dayEnd   = dayEndUTC(dateStr);
 
     const query: Record<string, unknown> = {
       date: { $gte: dayStart, $lte: dayEnd },

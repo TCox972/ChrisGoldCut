@@ -18,9 +18,6 @@ export const authOptions: NextAuthOptions = {
       },
 
       async authorize(credentials) {
-
-        console.log('🔑 Tentative connexion:', credentials?.email);
-
         if (!credentials?.email || !credentials?.password) {
           throw new Error('Email et mot de passe requis.');
         }
@@ -28,8 +25,6 @@ export const authOptions: NextAuthOptions = {
         await connectDB();
 
         const user = await User.findOne({ email: credentials.email.toLowerCase() });
-
-        console.log('👤 User trouvé:', user ? 'OUI' : 'NON');
 
         if (!user) throw new Error('Aucun compte associé à cet email.');
 

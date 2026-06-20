@@ -71,12 +71,13 @@ function formatMonth(month: string): string {
   return `${MOIS[m - 1]} ${y}`;
 }
 
+// UTC : aligne avec la date du RDV stockée comme heure murale du salon en UTC
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
-  const day   = String(d.getDate()).padStart(2, '0');
-  const mon   = String(d.getMonth() + 1).padStart(2, '0');
-  const hours = String(d.getHours()).padStart(2, '0');
-  const mins  = String(d.getMinutes()).padStart(2, '0');
+  const day   = String(d.getUTCDate()).padStart(2, '0');
+  const mon   = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const hours = String(d.getUTCHours()).padStart(2, '0');
+  const mins  = String(d.getUTCMinutes()).padStart(2, '0');
   return `${day}/${mon} ${hours}h${mins}`;
 }
 

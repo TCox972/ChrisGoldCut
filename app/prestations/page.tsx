@@ -50,6 +50,8 @@ export default function PrestationsPage() {
       <Navbar dark />
       <PageHero
         title="Nos Prestations"
+        subtitle="Coiffeur Homme · Ducos · Martinique"
+        srTitle="— Coupes, dégradés, barbe et soins cheveux à Ducos, Martinique"
         backgroundImage="https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=1600&q=80"
       />
 

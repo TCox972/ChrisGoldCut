@@ -19,6 +19,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
   }
 }
 
+// Champs autorisés à être modifiés via PUT (whitelist contre mass assignment)
+const PRESTATION_PUT_FIELDS = ['categorie', 'nom', 'duree', 'prix', 'actif'] as const;
+
 // ─── PUT /api/prestations/[id] ────────────────────────────────────────────────
 export async function PUT(req: NextRequest, { params }: Params) {
   const { error } = await requireAdmin();
@@ -27,9 +30,13 @@ export async function PUT(req: NextRequest, { params }: Params) {
   try {
     await connectDB();
     const body = await req.json();
+    const update: Record<string, unknown> = {};
+    for (const k of PRESTATION_PUT_FIELDS) {
+      if (k in body) update[k] = body[k];
+    }
     const updated = await Prestation.findByIdAndUpdate(
       params.id,
-      { $set: body },
+      { $set: update },
       { new: true, runValidators: true }
     );
     if (!updated) {

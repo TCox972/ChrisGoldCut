@@ -2,16 +2,30 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Prestation from '@/models/Prestation';
 import { requireAdmin } from '@/lib/auth';
+import { getSession } from '@/lib/auth';
 
 // ─── GET /api/prestations ─────────────────────────────────────────────────────
-// Public — retourne toutes les prestations actives
+// Public — par défaut retourne uniquement les prestations actives.
+// Admin (avec ?all=true) — retourne tout, y compris les prestations désactivées
+//   pour pouvoir les réactiver depuis l'UI admin.
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
     const { searchParams } = new URL(req.url);
     const categorie = searchParams.get('categorie');
+    const includeInactif = searchParams.get('all') === 'true';
 
-    const filter: Record<string, unknown> = { actif: true };
+    // L'option ?all=true est réservée aux admins
+    const filter: Record<string, unknown> = {};
+    if (includeInactif) {
+      const session = await getSession();
+      if ((session?.user as any)?.role !== 'admin') {
+        // Si demandeur non-admin, on ignore silencieusement le flag
+        filter.actif = true;
+      }
+    } else {
+      filter.actif = true;
+    }
     if (categorie) filter.categorie = categorie;
 
     const prestations = await Prestation.find(filter).sort({ categorie: 1, prix: 1 }).lean();

@@ -16,7 +16,6 @@ type Produit = {
   description: string;
   prix:        number;
   image:       string;
-  stock:       number;
   actif:       boolean;
 };
 
@@ -33,6 +32,8 @@ export default function BoutiquePage() {
   const [active,      setActive]      = useState<string>('');
 
   const { addItem, items, updateQuantite, totalItems, totalPrix } = useCart();
+
+  const [reloadTick, setReloadTick] = useState(0);
 
   // ─── Chargement depuis l'API (une seule fois, filtrage client-side) ─────────
   useEffect(() => {
@@ -51,17 +52,17 @@ export default function BoutiquePage() {
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [reloadTick]);
 
-  // Catégories dynamiques triées selon l'ordre admin + onglet "Tout"
+  // Catégories dynamiques : "Tout" en tête + catégories ordonnées par l'admin
   const allCats = Array.from(new Set(allProduits.map(p => p.categorie).filter(Boolean)));
   const categories: string[] = [
+    'Tout',
     ...catOrder.filter(c => allCats.includes(c)),
     ...allCats.filter(c => !catOrder.includes(c)),
-    'Tout',
   ];
 
-  // Sélection automatique du premier onglet dès que les catégories sont connues
+  // Sélection par défaut : "Tout" (premier onglet)
   useEffect(() => {
     if (!active && categories.length > 0) setActive(categories[0]);
   }, [active, categories]);
@@ -77,6 +78,8 @@ export default function BoutiquePage() {
       <Navbar dark />
       <PageHero
         title="Notre Boutique"
+        subtitle="Produits soin barbe & cheveux · Ducos, Martinique"
+        srTitle="— Produits soin barbe et cheveux à Ducos, Martinique"
         backgroundImage="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=1600&q=80"
       />
 
@@ -123,7 +126,7 @@ export default function BoutiquePage() {
           ) : error ? (
             <div className="text-center py-24">
               <p className="font-body text-red-500 text-sm mb-4">{error}</p>
-              <button onClick={() => setActive(active)} className="btn-gold-outline text-xs px-6 py-2">
+              <button onClick={() => setReloadTick(t => t + 1)} className="btn-gold-outline text-xs px-6 py-2">
                 Réessayer
               </button>
             </div>
@@ -145,21 +148,6 @@ export default function BoutiquePage() {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent pointer-events-none" />
 
-                      {/* Stock faible */}
-                      {p.stock > 0 && p.stock <= 3 && (
-                        <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded pointer-events-none">
-                          Plus que {p.stock} !
-                        </div>
-                      )}
-                      {p.stock === 0 && (
-                        <Link
-                          href={`/boutique/${p._id}`}
-                          className="absolute inset-0 bg-black/60 flex items-center justify-center"
-                        >
-                          <span className="font-display text-white text-xs tracking-widest uppercase">Rupture de stock</span>
-                        </Link>
-                      )}
-
                       {/* Nom + prix + bouton */}
                       <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
                         <div>
@@ -170,31 +158,29 @@ export default function BoutiquePage() {
                           <p className="font-body text-xs text-yellow-400 font-bold mt-1">{p.prix.toFixed(2)} €</p>
                         </div>
 
-                        {p.stock > 0 && (
-                          qty === 0 ? (
+                        {qty === 0 ? (
+                          <button
+                            onClick={() => addItem(toProduitCart(p))}
+                            className="bg-yellow-400 text-gray-900 text-xs font-bold px-4 py-1.5 rounded font-display tracking-wider hover:bg-yellow-300 transition-colors flex-shrink-0"
+                          >
+                            Ajouter
+                          </button>
+                        ) : (
+                          <div className="flex items-center gap-2 bg-gray-800 rounded px-2 py-1 flex-shrink-0">
+                            <button
+                              onClick={() => updateQuantite(p._id, qty - 1)}
+                              className="text-yellow-400 hover:text-white transition-colors"
+                            >
+                              {qty === 1 ? <Trash2 size={12} /> : <Minus size={12} />}
+                            </button>
+                            <span className="text-white text-xs font-bold w-4 text-center">{qty}</span>
                             <button
                               onClick={() => addItem(toProduitCart(p))}
-                              className="bg-yellow-400 text-gray-900 text-xs font-bold px-4 py-1.5 rounded font-display tracking-wider hover:bg-yellow-300 transition-colors flex-shrink-0"
+                              className="text-yellow-400 hover:text-white transition-colors"
                             >
-                              Ajouter
+                              <Plus size={12} />
                             </button>
-                          ) : (
-                            <div className="flex items-center gap-2 bg-gray-800 rounded px-2 py-1 flex-shrink-0">
-                              <button
-                                onClick={() => updateQuantite(p._id, qty - 1)}
-                                className="text-yellow-400 hover:text-white transition-colors"
-                              >
-                                {qty === 1 ? <Trash2 size={12} /> : <Minus size={12} />}
-                              </button>
-                              <span className="text-white text-xs font-bold w-4 text-center">{qty}</span>
-                              <button
-                                onClick={() => addItem(toProduitCart(p))}
-                                className="text-yellow-400 hover:text-white transition-colors"
-                              >
-                                <Plus size={12} />
-                              </button>
-                            </div>
-                          )
+                          </div>
                         )}
                       </div>
                     </div>

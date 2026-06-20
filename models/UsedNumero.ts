@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
+import crypto from 'crypto';
 
 // ─── Interface ────────────────────────────────────────────────────────────────
 // Collection qui trace TOUS les numéros déjà générés (réservations et
@@ -32,10 +33,13 @@ export default UsedNumero;
 const CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // 31 caractères
 const LENGTH  = 6;
 
+// crypto.randomInt : générateur cryptographiquement sûr — le numéro est
+// public (apparaît dans les emails et le QR code de RDV), il ne doit pas
+// être devinable par incrémentation ou pattern Math.random.
 function randomCode(): string {
   let s = '';
   for (let i = 0; i < LENGTH; i++) {
-    s += CHARSET[Math.floor(Math.random() * CHARSET.length)];
+    s += CHARSET[crypto.randomInt(0, CHARSET.length)];
   }
   return s;
 }

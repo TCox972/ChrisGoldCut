@@ -27,8 +27,9 @@ export async function GET(req: NextRequest) {
   }
 
   const [year, mon] = month.split('-').map(Number);
-  const start = new Date(year, mon - 1, 1);
-  const end = new Date(year, mon, 0, 23, 59, 59, 999);
+  // Bornes UTC alignées avec le stockage UTC des dates de RDV
+  const start = new Date(Date.UTC(year, mon - 1, 1, 0, 0, 0, 0));
+  const end   = new Date(Date.UTC(year, mon, 0, 23, 59, 59, 999));
 
   try {
     await connectDB();
@@ -121,8 +122,9 @@ export async function GET(req: NextRequest) {
 
     for (const rdv of rdvs) {
       const d = new Date(rdv.date);
-      const dateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-      const heureStr = `${String(d.getHours()).padStart(2, '0')}h${String(d.getMinutes()).padStart(2, '0')}`;
+      // UTC : la date du RDV est stockée comme heure murale du salon en UTC
+      const dateStr = `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()}`;
+      const heureStr = `${String(d.getUTCHours()).padStart(2, '0')}h${String(d.getUTCMinutes()).padStart(2, '0')}`;
 
       // Nom et prénom depuis le User lié, sinon depuis clientNom
       const linked = rdv.userId ? userMap.get(rdv.userId.toString()) : null;

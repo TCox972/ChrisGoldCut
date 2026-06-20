@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { CartItem, Produit } from './data';
 
 type CartContextType = {
@@ -16,9 +16,36 @@ type CartContextType = {
 };
 
 const CartContext = createContext<CartContextType | null>(null);
+const STORAGE_KEY = 'goldcut.cart';
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Hydratation depuis localStorage au montage (côté client uniquement)
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setItems(parsed);
+      }
+    } catch {
+      // localStorage indisponible ou JSON corrompu → on ignore
+    } finally {
+      setHydrated(true);
+    }
+  }, []);
+
+  // Persistance dès qu'on a hydraté (évite d'écraser au premier render)
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    } catch {
+      // quota plein / mode privé : silencieux
+    }
+  }, [items, hydrated]);
 
   const addItem = (produit: Produit) => {
     setItems(prev => {

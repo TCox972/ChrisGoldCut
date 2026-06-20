@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import PageHero from '@/components/layout/PageHero';
@@ -5,11 +6,30 @@ import SectionTitle from '@/components/ui/SectionTitle';
 import ContactInfo from '@/components/public/ContactInfo';
 import Link from 'next/link';
 
+export const metadata: Metadata = {
+  title: 'Le Salon — Coiffeur à Ducos en Martinique',
+  description:
+    "Découvrez Gold Cut, salon de coiffure homme à Ducos (Martinique) : ambiance soignée, " +
+    "matériel professionnel et expertise du coiffeur Christopher. Coupes, barbe et soins cheveux " +
+    "dans un cadre premium au cœur du bourg de Ducos.",
+  alternates: { canonical: '/le-salon' },
+  openGraph: {
+    title: 'Le Salon Gold Cut — Coiffeur Ducos Martinique',
+    description: 'Notre salon de coiffure à Ducos, Martinique.',
+    url: '/le-salon',
+  },
+};
+
 export default function AProposPage() {
   return (
     <main>
       <Navbar dark />
-      <PageHero title="Le Salon" backgroundImage="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=1600&q=80" />
+      <PageHero
+        title="Le Salon"
+        subtitle="Gold Cut · Ducos · Martinique"
+        srTitle="— Salon de coiffure homme à Ducos, Martinique"
+        backgroundImage="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=1600&q=80"
+      />
 
       {/* Notre Salon */}
       <section className="py-20 px-6 bg-white">

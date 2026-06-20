@@ -3,12 +3,13 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Edit3, Trash2, Plus, Check, X, Loader2, Ban, ChevronUp, ChevronDown, Filter, GripVertical, Upload, Image as ImageIcon } from 'lucide-react';
 import CategorySelect from '@/components/ui/CategorySelect';
+import ConfirmModal from '@/components/admin/ConfirmModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Produit = {
   _id: string; categorie: string;
   nom: string; description: string; descriptionLongue?: string;
-  prix: number; stock: number; actif: boolean;
+  prix: number; actif: boolean;
   image: string; images?: string[];
 };
 
@@ -24,6 +25,14 @@ export default function AdminProduitsPage() {
   const [commandes,setCommandes]= useState<CommandeAdmin[]>([]);
   const [loadingP, setLoadingP] = useState(true);
   const [loadingC, setLoadingC] = useState(false);
+
+  // Toast d'erreur global (auto-disparition après 5 s)
+  const [actionError, setActionError] = useState('');
+  useEffect(() => {
+    if (!actionError) return;
+    const t = setTimeout(() => setActionError(''), 5000);
+    return () => clearTimeout(t);
+  }, [actionError]);
 
   // Filtre par catégorie
   const [filterCat, setFilterCat] = useState<string>('');
@@ -100,7 +109,6 @@ export default function AdminProduitsPage() {
       description: p.description,
       descriptionLongue: p.descriptionLongue || '',
       prix: p.prix,
-      stock: p.stock,
     });
     setModalImages(p.images?.length ? [...p.images] : p.image ? [p.image] : []);
     setModalOpen(true);
@@ -115,7 +123,6 @@ export default function AdminProduitsPage() {
       description: '',
       descriptionLongue: '',
       prix: 0,
-      stock: 0,
     });
     setModalImages([]);
     setModalOpen(true);
@@ -127,7 +134,20 @@ export default function AdminProduitsPage() {
     setModalData(d => ({ ...d, [field]: value }));
 
   // ─── Upload image ─────────────────────────────────────────────────────────
+  const UPLOAD_MAX = 5 * 1024 * 1024;
+  const UPLOAD_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/avif', 'image/gif'];
+
   const uploadImage = async (file: File) => {
+    // Validation client (cohérente avec le serveur)
+    if (!UPLOAD_TYPES.includes(file.type)) {
+      alert(`Format non supporté. Acceptés : JPG, PNG, WEBP, AVIF, GIF.`);
+      return;
+    }
+    if (file.size > UPLOAD_MAX) {
+      alert(`Image trop volumineuse (${(file.size / 1024 / 1024).toFixed(1)} Mo). Maximum : 5 Mo.`);
+      return;
+    }
+
     setUploading(true);
     try {
       const form = new FormData();
@@ -137,7 +157,8 @@ export default function AdminProduitsPage() {
         const { url } = await res.json();
         setModalImages(prev => [...prev, url]);
       } else {
-        alert('Erreur lors de l\'upload de l\'image.');
+        const data = await res.json().catch(() => null);
+        alert(data?.error || 'Erreur lors de l\'upload de l\'image.');
       }
     } catch {
       alert('Erreur réseau lors de l\'upload.');
@@ -161,7 +182,6 @@ export default function AdminProduitsPage() {
         description: modalData.description || '',
         descriptionLongue: modalData.descriptionLongue || '',
         prix: modalData.prix ?? 0,
-        stock: modalData.stock ?? 0,
         image: modalImages[0] || '',
         images: modalImages,
       };
@@ -198,24 +218,63 @@ export default function AdminProduitsPage() {
     } finally { setSaving(false); }
   };
 
-  // ─── Suppression douce ────────────────────────────────────────────────────
-  const supprimer = async (id: string) => {
-    if (!confirm('Désactiver ce produit ?')) return;
-    const res = await fetch(`/api/produits/${id}`, { method: 'DELETE' });
-    if (res.ok) setProduits(prev => prev.filter(p => p._id !== id));
-  };
+  // ─── Modale de confirmation unifiée ───────────────────────────────────────
+  // Le pendingAction décrit l'action à exécuter quand l'utilisateur confirme.
+  type PendingAction =
+    | { type: 'deleteProduit'; id: string; nom: string }
+    | { type: 'cancelCommande'; id: string; numero: string };
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  // ─── Annulation commande ──────────────────────────────────────────────────
-  const annulerCommande = async (id: string) => {
-    if (!confirm('Annuler cette réservation client ?')) return;
-    const res = await fetch(`/api/commandes/${id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ statut: 'annulee' }),
-    });
-    if (res.ok) {
-      setCommandes(prev => prev.map(c => c._id === id ? { ...c, statut: 'annulee' } : c));
+  const askDeleteProduit = (p: Produit) =>
+    setPendingAction({ type: 'deleteProduit', id: p._id, nom: p.nom });
+  const askCancelCommande = (c: CommandeAdmin) =>
+    setPendingAction({ type: 'cancelCommande', id: c._id, numero: c.numero });
+
+  const runPendingAction = async () => {
+    if (!pendingAction) return;
+    setActionLoading(true);
+    try {
+      if (pendingAction.type === 'deleteProduit') {
+        const res = await fetch(`/api/produits/${pendingAction.id}`, { method: 'DELETE' });
+        if (res.ok) {
+          setProduits(prev => prev.filter(p => p._id !== pendingAction.id));
+          setPendingAction(null);
+        } else {
+          const data = await res.json().catch(() => null);
+          setActionError(data?.error || 'Impossible de désactiver ce produit. Réessayez.');
+        }
+      } else if (pendingAction.type === 'cancelCommande') {
+        const res = await fetch(`/api/commandes/${pendingAction.id}`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ statut: 'annulee' }),
+        });
+        if (res.ok) {
+          setCommandes(prev => prev.map(c => c._id === pendingAction.id ? { ...c, statut: 'annulee' } : c));
+          setPendingAction(null);
+        } else {
+          const data = await res.json().catch(() => null);
+          setActionError(data?.error || 'Impossible d\'annuler cette commande. Réessayez.');
+        }
+      }
+    } catch {
+      setActionError('Erreur réseau. Vérifiez votre connexion.');
+    } finally {
+      setActionLoading(false);
     }
   };
+
+  const pendingTitle = pendingAction?.type === 'deleteProduit'
+    ? 'Désactiver ce produit ?'
+    : pendingAction?.type === 'cancelCommande'
+      ? 'Annuler cette commande ?'
+      : '';
+  const pendingMessage = pendingAction?.type === 'deleteProduit'
+    ? `Le produit "${pendingAction.nom}" ne sera plus visible côté client. Il peut être réactivé plus tard.`
+    : pendingAction?.type === 'cancelCommande'
+      ? `La commande ${pendingAction.numero} sera marquée comme annulée. Cette action est irréversible côté client.`
+      : '';
+  const pendingConfirmLabel = pendingAction?.type === 'deleteProduit' ? 'Désactiver' : 'Annuler la commande';
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -232,17 +291,53 @@ export default function AdminProduitsPage() {
   const saveCategoryOrder = async () => {
     setSavingOrder(true);
     try {
-      await fetch('/api/category-order', {
+      const res = await fetch('/api/category-order', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'produits', order: orderedCategories }),
       });
-    } catch (err) { console.error(err); }
-    finally { setSavingOrder(false); setShowOrder(false); }
+      if (res.ok) {
+        setShowOrder(false);
+      } else {
+        const data = await res.json().catch(() => null);
+        setActionError(data?.error || 'Impossible d\'enregistrer l\'ordre des catégories. Réessayez.');
+      }
+    } catch {
+      setActionError('Erreur réseau. Vérifiez votre connexion.');
+    } finally {
+      setSavingOrder(false);
+    }
   };
 
   return (
     <div>
+      {/* Modale de confirmation unifiée */}
+      <ConfirmModal
+        open={!!pendingAction}
+        title={pendingTitle}
+        message={pendingMessage}
+        confirmLabel={pendingConfirmLabel}
+        variant="danger"
+        loading={actionLoading}
+        onConfirm={runPendingAction}
+        onCancel={() => setPendingAction(null)}
+      />
+
+      {/* Toast d'erreur (auto-disparition) */}
+      {actionError && (
+        <div className="fixed top-6 right-6 z-50 max-w-sm bg-red-600 text-white rounded-lg shadow-xl px-4 py-3 flex items-start gap-3">
+          <span className="font-body text-sm flex-1">{actionError}</span>
+          <button
+            type="button"
+            onClick={() => setActionError('')}
+            aria-label="Fermer"
+            className="text-white/70 hover:text-white"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
         <h1 className="font-body text-2xl font-bold text-gray-900">Produits</h1>
         {tab === 'liste' && (
@@ -316,7 +411,7 @@ export default function AdminProduitsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-50">
-                    {['Image', 'Catégorie', 'Désignation', 'Infos', 'Prix', 'Stock', ''].map(h => (
+                    {['Image', 'Catégorie', 'Désignation', 'Infos', 'Prix', ''].map(h => (
                       <th key={h} className="font-body text-xs font-semibold text-gray-500 text-left px-5 py-4">{h}</th>
                     ))}
                   </tr>
@@ -340,16 +435,11 @@ export default function AdminProduitsPage() {
                       <td className="px-5 py-3 font-body text-sm text-gray-500">{p.description}</td>
                       <td className="px-5 py-3 font-body text-sm text-gray-600">{p.prix} €</td>
                       <td className="px-5 py-3">
-                        <span className={`font-body text-sm font-medium ${p.stock <= 3 ? 'text-red-500' : 'text-gray-600'}`}>
-                          {p.stock}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3">
                         <div className="flex gap-2">
                           <button onClick={(e) => { e.stopPropagation(); openEdit(p); }}
                             className="text-gray-300 hover:text-yellow-500 transition-colors"><Edit3 size={15} /></button>
-                          <button onClick={(e) => { e.stopPropagation(); supprimer(p._id); }}
-                            className="text-gray-300 hover:text-red-400 transition-colors"><Trash2 size={15} /></button>
+                          <button onClick={(e) => { e.stopPropagation(); askDeleteProduit(p); }}
+                            className="text-gray-300 hover:text-red-400 transition-colors" aria-label="Désactiver"><Trash2 size={15} /></button>
                         </div>
                       </td>
                     </tr>
@@ -425,8 +515,8 @@ export default function AdminProduitsPage() {
                     </td>
                     <td className="px-5 py-4">
                       {cmd.statut === 'en-attente' && (
-                        <button onClick={() => annulerCommande(cmd._id)} title="Annuler cette commande"
-                          className="text-gray-300 hover:text-red-400 transition-colors"><Ban size={16} /></button>
+                        <button onClick={() => askCancelCommande(cmd)} title="Annuler cette commande"
+                          className="text-gray-300 hover:text-red-400 transition-colors" aria-label="Annuler la commande"><Ban size={16} /></button>
                       )}
                     </td>
                   </tr>
@@ -498,24 +588,14 @@ export default function AdminProduitsPage() {
                   placeholder="Description complète du produit, ingrédients, conseils d'utilisation..." />
               </div>
 
-              {/* Prix + Stock */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="font-body text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block">
-                    Prix (€)
-                  </label>
-                  <input type="number" min="0" step="0.5" value={modalData.prix ?? 0}
-                    onChange={e => handleField('prix', parseFloat(e.target.value) || 0)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-yellow-400" />
-                </div>
-                <div>
-                  <label className="font-body text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block">
-                    Stock
-                  </label>
-                  <input type="number" min="0" value={modalData.stock ?? 0}
-                    onChange={e => handleField('stock', parseInt(e.target.value) || 0)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-yellow-400" />
-                </div>
+              {/* Prix */}
+              <div>
+                <label className="font-body text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block">
+                  Prix (€)
+                </label>
+                <input type="number" min="0" step="0.5" value={modalData.prix ?? 0}
+                  onChange={e => handleField('prix', parseFloat(e.target.value) || 0)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-yellow-400" />
               </div>
 
               {/* Photos */}

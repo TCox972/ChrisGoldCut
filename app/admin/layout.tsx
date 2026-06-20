@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { Calendar, Scissors, Package, Users, UserCog, CalendarOff, LogOut, TrendingUp } from 'lucide-react';
+import { Calendar, Scissors, Package, Users, UserCog, CalendarOff, LogOut, TrendingUp, ExternalLink } from 'lucide-react';
 
 type NavItem = { href: string; label: string; icon: any; adminOnly?: boolean };
 
@@ -46,10 +46,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </span>
           )}
         </div>
-        <button onClick={handleLogout}
-          className="flex items-center gap-2 font-body text-sm text-gray-500 hover:text-gray-900 transition-colors">
-          <LogOut size={15} /> Se déconnecter
-        </button>
+        <div className="flex items-center gap-5">
+          <Link
+            href="/"
+            className="flex items-center gap-2 font-body text-sm text-gray-500 hover:text-yellow-600 transition-colors"
+            title="Retourner au site public"
+          >
+            <ExternalLink size={15} /> Voir le site
+          </Link>
+          <button onClick={handleLogout}
+            className="flex items-center gap-2 font-body text-sm text-gray-500 hover:text-gray-900 transition-colors">
+            <LogOut size={15} /> Se déconnecter
+          </button>
+        </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">

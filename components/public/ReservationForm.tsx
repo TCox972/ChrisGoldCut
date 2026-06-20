@@ -79,7 +79,6 @@ export default function ReservationForm() {
   const [staff,        setStaff]        = useState<StaffMember[]>([]);
   const [profile,      setProfile]      = useState<UserProfile | null>(null);
   const [loadingP,     setLoadingP]     = useState(true);
-  const [lastPrestaId, setLastPrestaId] = useState<string>('');
 
   // ── Créneaux ─────────────────────────────────────────────────────────────
   const [slots,        setSlots]        = useState<Slot[]>([]);
@@ -121,7 +120,10 @@ export default function ReservationForm() {
     if (!isConnected) return;
 
     fetch('/api/me')
-      .then(r => r.json())
+      .then(async r => {
+        if (!r.ok) throw new Error(`Erreur ${r.status}`);
+        return r.json();
+      })
       .then((data: UserProfile) => {
         setProfile(data);
         setForm(f => ({
@@ -132,29 +134,7 @@ export default function ReservationForm() {
         }));
       })
       .catch(() => {});
-
-    fetch('/api/reservations?limit=1')
-      .then(r => r.json())
-      .then((rdvs: any[]) => {
-        if (!Array.isArray(rdvs) || rdvs.length === 0) return;
-        if (rdvs[0].prestations?.length > 0) {
-          setLastPrestaId(rdvs[0].prestations[0]);
-        }
-      })
-      .catch(() => {});
   }, [isConnected]);
-
-  // ─── 3. Pré-remplir la prestation ──────────────────────────────────────────
-  useEffect(() => {
-    if (!lastPrestaId || prestations.length === 0) return;
-    const found = prestations.find(p => p.nom === lastPrestaId);
-    if (found) {
-      setForm(f => f.prestationIds.length === 0
-        ? { ...f, prestationIds: [found._id] }
-        : f
-      );
-    }
-  }, [lastPrestaId, prestations]);
 
   // ─── Calcul de la durée totale à partir des prestations choisies ─────────
   const computedDuree = useMemo(() => {
@@ -182,12 +162,18 @@ export default function ReservationForm() {
     if (form.employeId) params.set('employeId', form.employeId);
 
     fetch(`/api/slots?${params}`)
-      .then(r => r.json())
+      .then(async r => {
+        if (!r.ok) throw new Error(`Erreur ${r.status}`);
+        return r.json();
+      })
       .then(data => {
         setSlots(data.slots ?? []);
         setDureeMinutes(data.dureeMinutes ?? computedDuree);
       })
-      .catch(() => setErrMsg('Impossible de charger les créneaux.'))
+      .catch(() => {
+        setSlots([]);
+        setErrMsg('Impossible de charger les créneaux. Réessayez plus tard.');
+      })
       .finally(() => setLoadingSlots(false));
   }, [form.date, form.prestationIds, form.employeId, computedDuree]);
 
@@ -206,13 +192,30 @@ export default function ReservationForm() {
   // ─── Soumission ────────────────────────────────────────────────────────────
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setStatus('loading');
     setErrMsg('');
+
+    // Garde-fou : "Pour qui = Autre personne" exige au moins un prénom
+    if (form.pourQui === 'nouveau' && !form.autrePrenom.trim()) {
+      setErrMsg('Veuillez indiquer le prénom de la personne pour qui vous réservez.');
+      setStatus('error');
+      return;
+    }
 
     const prestationsSelectionnees = form.prestationIds
       .map(id => prestations.find(p => p._id === id))
       .filter((p): p is Prestation => !!p);
 
+    // Garde-fou : si une prestation a disparu côté serveur (désactivée/supprimée)
+    // entre le chargement et la soumission, on bloque et on alerte l'utilisateur.
+    if (prestationsSelectionnees.length !== form.prestationIds.length) {
+      const missing = form.prestationIds.filter(id => !prestations.find(p => p._id === id));
+      setForm(f => ({ ...f, prestationIds: f.prestationIds.filter(id => !missing.includes(id)) }));
+      setErrMsg('Une des prestations sélectionnées n\'est plus disponible. Elle a été retirée — vérifiez votre choix puis revalidez.');
+      setStatus('error');
+      return;
+    }
+
+    setStatus('loading');
     try {
       const res = await fetch('/api/reservations', {
         method:  'POST',
@@ -224,7 +227,10 @@ export default function ReservationForm() {
           pourQui:      resolvePourQui(),
           prestations:  prestationsSelectionnees.map(p => p.nom),
           dureeMinutes: dureeMinutes,
-          date:         new Date(`${form.date}T${form.heure}:00`).toISOString(),
+          // Date envoyée en UTC explicite (.000Z) avec l'heure murale du salon.
+          // Le serveur stocke et lit en UTC : la chaîne reste cohérente quel
+          // que soit le fuseau du serveur (UTC sur Docker/Vercel) ou du client.
+          date:         `${form.date}T${form.heure}:00.000Z`,
           employeId:    form.employeId || undefined,
         }),
       });
@@ -484,7 +490,7 @@ export default function ReservationForm() {
             <div className="relative hidden md:block">
               <div
                 className="absolute inset-0 bg-cover bg-center"
-                style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&q=80)' }}
+                style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=520&h=1200&fit=crop&crop=faces,center&q=85)' }}
               />
               <div className="absolute inset-0 bg-black/30" />
               {isConnected && profile && (
@@ -629,11 +635,6 @@ export default function ReservationForm() {
                     </>
                   )}
 
-                  {isConnected && form.prestationIds.length === 1 && lastPrestaId && (
-                    <p className="text-yellow-400/50 text-xs font-body mt-1.5 flex items-center gap-1">
-                      <span>↩</span> Pré-rempli depuis votre dernière réservation
-                    </p>
-                  )}
                 </div>
 
                 {/* ── Choix du coiffeur ── */}
@@ -745,7 +746,7 @@ export default function ReservationForm() {
                 </div>
 
                 {/* ── Erreur ── */}
-                {status === 'error' && (
+                {errMsg && (
                   <p className="text-red-400 text-xs bg-red-900/20 rounded px-3 py-2">{errMsg}</p>
                 )}
 

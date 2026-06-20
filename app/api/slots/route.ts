@@ -11,6 +11,7 @@ import {
   isSlotAvailable,
   parseDuree,
 } from '@/lib/slots';
+import { dayStartUTC, dayEndUTC, toDateStrUTC, toSlotUTC } from '@/lib/dates';
 
 // ─── GET /api/slots ──────────────────────────────────────────────────────────
 // Params: date=YYYY-MM-DD &
@@ -35,9 +36,9 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
-    // Vérifier si c'est un dimanche
-    const dayStart = new Date(`${dateStr}T00:00:00`);
-    if (dayStart.getDay() === 0) {
+    // Vérifier si c'est un dimanche (bornes en UTC pour rester TZ-indépendant)
+    const dayStart = dayStartUTC(dateStr);
+    if (dayStart.getUTCDay() === 0) {
       const allSlots = generateAllSlots();
       return NextResponse.json({
         slots: allSlots.map(heure => ({ heure, disponible: false })),
@@ -48,7 +49,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Vérifier si c'est un jour de fermeture
-    const dayEnd   = new Date(`${dateStr}T23:59:59`);
+    const dayEnd   = dayEndUTC(dateStr);
 
     const closedDay = await ClosedDay.findOne({
       date: { $gte: dayStart, $lte: dayEnd },
@@ -76,11 +77,11 @@ export async function GET(req: NextRequest) {
       duree = parseDuree(prestation.duree);
     }
 
-    // Filtrer les créneaux passés
+    // Filtrer les créneaux passés (référence UTC, cohérente avec le stockage)
     const now = new Date();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const todayStr = toDateStrUTC(now);
     const isToday = dateStr === todayStr;
-    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const currentTime = toSlotUTC(now);
 
     const allSlots = generateAllSlots();
 

@@ -5,14 +5,16 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+// Accesseurs UTC : la date de réservation est stockée en UTC (heure murale du salon).
+// Permet d'avoir le même rendu de mail quel que soit le fuseau du serveur (Dokploy/UTC).
 function formatDate(date: Date): string {
   const jours = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
   const mois = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-  return `${jours[date.getDay()]} ${date.getDate()} ${mois[date.getMonth()]} ${date.getFullYear()}`;
+  return `${jours[date.getUTCDay()]} ${date.getUTCDate()} ${mois[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
 }
 
 function formatHeure(date: Date): string {
-  return `${String(date.getHours()).padStart(2, '0')}h${String(date.getMinutes()).padStart(2, '0')}`;
+  return `${String(date.getUTCHours()).padStart(2, '0')}h${String(date.getUTCMinutes()).padStart(2, '0')}`;
 }
 
 function emailLayout(content: string): string {

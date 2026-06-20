@@ -8,7 +8,7 @@ import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
 
 export default function InscriptionPage() {
-  const [form, setForm] = useState({ prenom: '', email: '', password: '', confirm: '' });
+  const [form, setForm] = useState({ prenom: '', nom: '', email: '', telephone: '', password: '', confirm: '' });
   const [error,   setError]   = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
@@ -31,7 +31,10 @@ export default function InscriptionPage() {
     }
 
     setLoading(true);
-    const result = await register(form.prenom, form.email, form.password);
+    const result = await register(form.prenom, form.email, form.password, {
+      nom: form.nom,
+      telephone: form.telephone,
+    });
     setLoading(false);
 
     if (result.ok) {
@@ -60,17 +63,25 @@ export default function InscriptionPage() {
             </h1>
 
             <form onSubmit={submit} className="flex flex-col gap-4">
-              <input name="prenom" value={form.prenom} onChange={handle}
-                placeholder="Prénom" required className="input-gold text-white"
-                style={{ backgroundColor: 'rgba(255,255,255,0.05)' }} />
+              <div className="grid grid-cols-2 gap-3">
+                <input name="prenom" value={form.prenom} onChange={handle}
+                  placeholder="Prénom *" required className="input-gold text-white"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.05)' }} />
+                <input name="nom" value={form.nom} onChange={handle}
+                  placeholder="Nom" className="input-gold text-white"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.05)' }} />
+              </div>
               <input name="email" type="email" value={form.email} onChange={handle}
-                placeholder="Email" required className="input-gold text-white"
+                placeholder="Email *" required className="input-gold text-white"
+                style={{ backgroundColor: 'rgba(255,255,255,0.05)' }} />
+              <input name="telephone" type="tel" value={form.telephone} onChange={handle}
+                placeholder="Téléphone (+596 696 ...)" className="input-gold text-white"
                 style={{ backgroundColor: 'rgba(255,255,255,0.05)' }} />
               <input name="password" type="password" value={form.password} onChange={handle}
-                placeholder="Mot de passe (min. 6 caractères)" required className="input-gold text-white"
+                placeholder="Mot de passe (min. 6 caractères) *" required className="input-gold text-white"
                 style={{ backgroundColor: 'rgba(255,255,255,0.05)' }} />
               <input name="confirm" type="password" value={form.confirm} onChange={handle}
-                placeholder="Confirmer mot de passe" required className="input-gold text-white"
+                placeholder="Confirmer mot de passe *" required className="input-gold text-white"
                 style={{ backgroundColor: 'rgba(255,255,255,0.05)' }} />
 
               {error && (

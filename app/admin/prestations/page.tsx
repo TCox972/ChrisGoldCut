@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Edit3, Trash2, Plus, Check, X, Loader2, ChevronUp, ChevronDown, Filter, GripVertical } from 'lucide-react';
+import { Edit3, Trash2, Plus, Check, X, Loader2, ChevronUp, ChevronDown, Filter, GripVertical, RotateCcw } from 'lucide-react';
+import ConfirmModal from '@/components/admin/ConfirmModal';
 import CategorySelect from '@/components/ui/CategorySelect';
 
 type Prestation = {
@@ -24,6 +25,14 @@ export default function AdminPrestationsPage() {
   const [draft,   setDraft]   = useState<Draft>(EMPTY_DRAFT);
   const [saving,  setSaving]  = useState(false);
   const [adding,  setAdding]  = useState(false);
+
+  // Toast d'erreur global (auto-disparition après 5 s)
+  const [actionError, setActionError] = useState('');
+  useEffect(() => {
+    if (!actionError) return;
+    const t = setTimeout(() => setActionError(''), 5000);
+    return () => clearTimeout(t);
+  }, [actionError]);
 
   // Filtre par catégorie
   const [filterCat, setFilterCat] = useState<string>('');
@@ -132,10 +141,52 @@ export default function AdminPrestationsPage() {
   };
 
   // ─── Suppression douce (DELETE → actif:false) ─────────────────────────────
-  const supprimer = async (id: string) => {
-    if (!confirm('Désactiver cette prestation ?')) return;
-    const res = await fetch(`/api/prestations/${id}`, { method: 'DELETE' });
-    if (res.ok) setItems(prev => prev.filter(p => p._id !== id));
+  // On garde la prestation dans la liste (juste opacity 40 %) pour permettre
+  // sa réactivation via le bouton réactiver — l'admin liste désormais aussi
+  // les prestations désactivées (?all=true côté API).
+  const [pendingDelete, setPendingDelete] = useState<Prestation | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const askDelete = (p: Prestation) => setPendingDelete(p);
+
+  const supprimer = async () => {
+    if (!pendingDelete) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/prestations/${pendingDelete._id}`, { method: 'DELETE' });
+      if (res.ok) {
+        const id = pendingDelete._id;
+        setItems(prev => prev.map(p => p._id === id ? { ...p, actif: false } : p));
+        setPendingDelete(null);
+      } else {
+        const data = await res.json().catch(() => null);
+        setActionError(data?.error || 'Impossible de désactiver cette prestation. Réessayez.');
+      }
+    } catch {
+      setActionError('Erreur réseau. Vérifiez votre connexion.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ─── Réactivation ─────────────────────────────────────────────────────────
+  const reactiver = async (id: string) => {
+    try {
+      const res = await fetch(`/api/prestations/${id}`, {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ actif: true }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setItems(prev => prev.map(p => p._id === id ? updated : p));
+      } else {
+        const data = await res.json().catch(() => null);
+        setActionError(data?.error || 'Impossible de réactiver cette prestation. Réessayez.');
+      }
+    } catch {
+      setActionError('Erreur réseau. Vérifiez votre connexion.');
+    }
   };
 
   // ─── Réordonnement des catégories ─────────────────────────────────────────
@@ -150,22 +201,56 @@ export default function AdminPrestationsPage() {
   const saveCategoryOrder = async () => {
     setSavingOrder(true);
     try {
-      await fetch('/api/category-order', {
+      const res = await fetch('/api/category-order', {
         method:  'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ type: 'prestations', order: orderedCategories }),
       });
-    } catch (err) {
-      console.error(err);
+      if (res.ok) {
+        setShowOrder(false);
+      } else {
+        const data = await res.json().catch(() => null);
+        setActionError(data?.error || 'Impossible d\'enregistrer l\'ordre des catégories. Réessayez.');
+      }
+    } catch {
+      setActionError('Erreur réseau. Vérifiez votre connexion.');
     } finally {
       setSavingOrder(false);
-      setShowOrder(false);
     }
   };
 
   // ─── Render ─────────────────────────────────────────────────────────────────
   return (
     <div>
+      {/* Modale de confirmation désactivation */}
+      <ConfirmModal
+        open={!!pendingDelete}
+        title="Désactiver cette prestation ?"
+        message={pendingDelete
+          ? `« ${pendingDelete.nom} » ne sera plus proposée à la réservation. Vous pouvez la réactiver à tout moment.`
+          : ''}
+        confirmLabel="Désactiver"
+        variant="danger"
+        loading={actionLoading}
+        onConfirm={supprimer}
+        onCancel={() => setPendingDelete(null)}
+      />
+
+      {/* Toast d'erreur (auto-disparition) */}
+      {actionError && (
+        <div className="fixed top-6 right-6 z-50 max-w-sm bg-red-600 text-white rounded-lg shadow-xl px-4 py-3 flex items-start gap-3">
+          <span className="font-body text-sm flex-1">{actionError}</span>
+          <button
+            type="button"
+            onClick={() => setActionError('')}
+            aria-label="Fermer"
+            className="text-white/70 hover:text-white"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
         <h1 className="font-body text-2xl font-bold text-gray-900">Prestations</h1>
         <div className="flex items-center gap-3">
@@ -313,7 +398,7 @@ export default function AdminPrestationsPage() {
                           <input
                             type="number" min="0" step="0.5"
                             value={draft.prix}
-                            onChange={e => handleDraft('prix', parseFloat(e.target.value))}
+                            onChange={e => handleDraft('prix', parseFloat(e.target.value) || 0)}
                             className="border border-gray-200 rounded px-3 py-1.5 text-sm font-body outline-none focus:border-yellow-400 w-20"
                           />
                           <span className="text-gray-400 text-sm">€</span>
@@ -340,12 +425,18 @@ export default function AdminPrestationsPage() {
                           </>
                         ) : (
                           <>
-                            <button onClick={() => startEdit(item)} className="text-gray-300 hover:text-yellow-500 transition-colors">
+                            <button onClick={() => startEdit(item)} className="text-gray-300 hover:text-yellow-500 transition-colors" aria-label="Modifier">
                               <Edit3 size={15} />
                             </button>
-                            <button onClick={() => supprimer(item._id)} className="text-gray-300 hover:text-red-400 transition-colors">
-                              <Trash2 size={15} />
-                            </button>
+                            {item.actif ? (
+                              <button onClick={() => askDelete(item)} className="text-gray-300 hover:text-red-400 transition-colors" aria-label="Désactiver">
+                                <Trash2 size={15} />
+                              </button>
+                            ) : (
+                              <button onClick={() => reactiver(item._id)} className="text-gray-300 hover:text-green-500 transition-colors" aria-label="Réactiver" title="Réactiver">
+                                <RotateCcw size={15} />
+                              </button>
+                            )}
                           </>
                         )}
                       </div>
@@ -384,7 +475,7 @@ export default function AdminPrestationsPage() {
                       <input
                         type="number" min="0" step="0.5"
                         value={draft.prix}
-                        onChange={e => handleDraft('prix', parseFloat(e.target.value))}
+                        onChange={e => handleDraft('prix', parseFloat(e.target.value) || 0)}
                         className="border border-yellow-300 rounded px-3 py-1.5 text-sm font-body outline-none focus:border-yellow-500 w-20"
                       />
                       <span className="text-gray-400 text-sm">€</span>

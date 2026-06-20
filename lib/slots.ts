@@ -26,13 +26,19 @@ export function parseDuree(duree: string): number {
 }
 
 // ─── Nombre de créneaux bloqués par une prestation ──────────────────────────
+// Robuste à un input null/undefined/NaN : on tombe sur 30 min par défaut
+// pour ne jamais retourner NaN (qui ferait crasher la boucle d'occupation).
 export function slotsNeeded(dureeMinutes: number): number {
-  return Math.ceil(dureeMinutes / STEP);
+  const m = Number.isFinite(dureeMinutes) && dureeMinutes > 0 ? dureeMinutes : 30;
+  return Math.ceil(m / STEP);
 }
 
 // ─── Extrait l'heure "HH:MM" d'un objet Date ───────────────────────────────
+// Utilise getUTCHours/Minutes : les dates de réservation sont stockées comme
+// "heure murale du salon" interprétée en UTC. Cela rend la logique TZ-indépendante
+// (fonctionne quel que soit le fuseau du serveur ou du navigateur).
 export function dateToSlot(date: Date): string {
-  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  return `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}`;
 }
 
 // ─── Crée les créneaux occupés à partir des réservations ────────────────────

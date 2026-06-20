@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -17,7 +17,6 @@ type Produit = {
   prix:              number;
   image:             string;
   images:            string[];
-  stock:             number;
   actif:             boolean;
 };
 
@@ -43,14 +42,17 @@ export default function ProduitDetailPage() {
   }, [id]);
 
   const qty = produit ? (items.find(i => i.produitId === produit._id)?.quantite ?? 0) : 0;
-  const allImages = produit
-    ? (produit.images?.length ? produit.images : produit.image ? [produit.image] : [])
-    : [];
+  const allImages = useMemo(
+    () => produit
+      ? (produit.images?.length ? produit.images : produit.image ? [produit.image] : [])
+      : [],
+    [produit],
+  );
 
-  const toProduitCart = (p: Produit) => ({
+  const toProduitCart = useCallback((p: Produit) => ({
     id: p._id, categorie: p.categorie, nom: p.nom,
     description: p.description, prix: p.prix, image: allImages[0] || '',
-  });
+  }), [allImages]);
 
   return (
     <main>
@@ -155,52 +157,37 @@ export default function ProduitDetailPage() {
                   {produit.prix.toFixed(2)} €
                 </p>
 
-                {/* Stock */}
-                {produit.stock === 0 ? (
-                  <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-6">
-                    <p className="font-body text-sm text-red-600 font-medium">Rupture de stock</p>
-                  </div>
-                ) : produit.stock <= 3 ? (
-                  <p className="font-body text-sm text-red-500 font-medium mb-6">
-                    Plus que {produit.stock} en stock !
-                  </p>
-                ) : (
-                  <p className="font-body text-sm text-green-600 mb-6">En stock</p>
-                )}
-
                 {/* Bouton ajouter / quantité */}
-                {produit.stock > 0 && (
-                  <div className="mb-8">
-                    {qty === 0 ? (
-                      <button
-                        onClick={() => addItem(toProduitCart(produit))}
-                        className="w-full md:w-auto flex items-center justify-center gap-3
-                          bg-yellow-400 text-gray-900 font-body text-sm font-bold
-                          px-8 py-3 rounded-lg hover:bg-yellow-300 transition-colors"
-                      >
-                        <ShoppingCart size={16} /> Ajouter au panier
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-3 bg-gray-100 rounded-lg px-4 py-2">
-                          <button onClick={() => updateQuantite(produit._id, qty - 1)}
-                            className="text-gray-500 hover:text-red-500 transition-colors">
-                            {qty === 1 ? <Trash2 size={16} /> : <Minus size={16} />}
-                          </button>
-                          <span className="font-body text-lg font-bold text-gray-900 w-8 text-center">{qty}</span>
-                          <button onClick={() => addItem(toProduitCart(produit))}
-                            className="text-gray-500 hover:text-yellow-600 transition-colors">
-                            <Plus size={16} />
-                          </button>
-                        </div>
-                        <Link href="/panier"
-                          className="font-body text-sm text-yellow-600 hover:text-yellow-700 font-medium underline underline-offset-2">
-                          Voir le panier
-                        </Link>
+                <div className="mb-8">
+                  {qty === 0 ? (
+                    <button
+                      onClick={() => addItem(toProduitCart(produit))}
+                      className="w-full md:w-auto flex items-center justify-center gap-3
+                        bg-yellow-400 text-gray-900 font-body text-sm font-bold
+                        px-8 py-3 rounded-lg hover:bg-yellow-300 transition-colors"
+                    >
+                      <ShoppingCart size={16} /> Ajouter au panier
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3 bg-gray-100 rounded-lg px-4 py-2">
+                        <button onClick={() => updateQuantite(produit._id, qty - 1)}
+                          className="text-gray-500 hover:text-red-500 transition-colors">
+                          {qty === 1 ? <Trash2 size={16} /> : <Minus size={16} />}
+                        </button>
+                        <span className="font-body text-lg font-bold text-gray-900 w-8 text-center">{qty}</span>
+                        <button onClick={() => addItem(toProduitCart(produit))}
+                          className="text-gray-500 hover:text-yellow-600 transition-colors">
+                          <Plus size={16} />
+                        </button>
                       </div>
-                    )}
-                  </div>
-                )}
+                      <Link href="/panier"
+                        className="font-body text-sm text-yellow-600 hover:text-yellow-700 font-medium underline underline-offset-2">
+                        Voir le panier
+                      </Link>
+                    </div>
+                  )}
+                </div>
 
                 {/* Description longue */}
                 {produit.descriptionLongue && (
