@@ -1,16 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 // ─── POST /api/auth/verify-email ────────────────────────────────────────────
 // Valide un compte via le token reçu par e-mail.
 // Body : { token: string }
 export async function POST(req: NextRequest) {
+  const rl = rateLimit({ key: `verify:${getClientIp(req)}`, limit: 20, windowMs: 10 * 60 * 1000 });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: 'Trop de tentatives. Réessayez plus tard.' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } },
+    );
+  }
+
   try {
     await connectDB();
     const { token } = await req.json();
 
-    if (!token) {
+    // Typage strict : empêche l'injection d'opérateurs NoSQL (ex. {"$ne":null})
+    // via le driver natif Mongo qui ne caste pas les valeurs.
+    if (typeof token !== 'string' || !token) {
       return NextResponse.json(
         { error: 'Token manquant.' },
         { status: 400 },

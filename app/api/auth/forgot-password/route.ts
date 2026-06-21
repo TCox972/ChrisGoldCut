@@ -3,11 +3,20 @@ import crypto from 'crypto';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
 import { sendMail } from '@/lib/mail';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 // ─── POST /api/auth/forgot-password ─────────────────────────────────────────
 // Génère un token de réinitialisation et envoie un e-mail au client.
 // Body : { email: string }
 export async function POST(req: NextRequest) {
+  const rl = rateLimit({ key: `forgot:${getClientIp(req)}`, limit: 5, windowMs: 15 * 60 * 1000 });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: 'Trop de demandes. Réessayez plus tard.' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } },
+    );
+  }
+
   try {
     await connectDB();
     const { email } = await req.json();

@@ -3,16 +3,27 @@ import bcrypt from 'bcryptjs';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
 import { validatePassword } from '@/lib/password';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 // ─── POST /api/auth/reset-password ──────────────────────────────────────────
 // Réinitialise le mot de passe via le token reçu par e-mail.
 // Body : { token: string, password: string }
 export async function POST(req: NextRequest) {
+  const rl = rateLimit({ key: `reset:${getClientIp(req)}`, limit: 10, windowMs: 15 * 60 * 1000 });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: 'Trop de tentatives. Réessayez plus tard.' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } },
+    );
+  }
+
   try {
     await connectDB();
     const { token, password } = await req.json();
 
-    if (!token || !password) {
+    // Typage strict : empêche l'injection d'opérateurs NoSQL (ex. {"$ne":null})
+    // via le driver natif Mongo qui, contrairement à Mongoose, ne caste pas.
+    if (typeof token !== 'string' || typeof password !== 'string' || !token || !password) {
       return NextResponse.json(
         { error: 'Token et mot de passe sont requis.' },
         { status: 400 },

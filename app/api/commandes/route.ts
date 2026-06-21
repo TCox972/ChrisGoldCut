@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import CommandeAchat from '@/models/CommandeAchat';
+import Produit from '@/models/Produit';
 import { generateUniqueNumero } from '@/models/UsedNumero';
 import { requireAuth, getSession } from '@/lib/auth';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 // ─── GET /api/commandes ───────────────────────────────────────────────────────
 // Admin  → toutes les commandes
@@ -56,6 +58,15 @@ export async function GET(req: NextRequest) {
 //   }]
 // }
 export async function POST(req: NextRequest) {
+  // Anti-spam : limite par IP
+  const rl = rateLimit({ key: `commandes:${getClientIp(req)}`, limit: 10, windowMs: 10 * 60 * 1000 });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: 'Trop de commandes en peu de temps. Réessayez plus tard.' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } },
+    );
+  }
+
   try {
     await connectDB();
     const session = await getSession();
@@ -77,6 +88,38 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ── Intégrité des prix ───────────────────────────────────────────────────
+    // On NE fait PAS confiance au prix envoyé par le client : on recharge chaque
+    // produit actif depuis la base et on reconstruit les articles avec le prix
+    // serveur. Empêche un client de commander à un prix arbitraire.
+    const ids = articles
+      .map((a: any) => a?.produitId)
+      .filter((id: any) => typeof id === 'string');
+    const produits = await Produit.find({ _id: { $in: ids }, actif: true })
+      .select('nom description prix image images')
+      .lean();
+    const byId = new Map(produits.map(p => [p._id.toString(), p]));
+
+    const safeArticles = [];
+    for (const a of articles) {
+      const p = typeof a?.produitId === 'string' ? byId.get(a.produitId) : undefined;
+      if (!p) {
+        return NextResponse.json(
+          { error: 'Un des produits commandés est introuvable ou indisponible.' },
+          { status: 409 },
+        );
+      }
+      const quantite = Math.max(1, Math.min(99, parseInt(a?.quantite, 10) || 1));
+      safeArticles.push({
+        produitId:   p._id,
+        nom:         p.nom,
+        description: p.description ?? '',
+        image:       p.images?.[0] || p.image || '',
+        prix:        p.prix,          // ← prix de référence serveur
+        quantite,
+      });
+    }
+
     // ── Création ────────────────────────────────────────────────────────────
     // Numéro unique 6 caractères généré et réservé atomiquement
     const numero = await generateUniqueNumero('commande');
@@ -86,14 +129,14 @@ export async function POST(req: NextRequest) {
       userId:      session?.user ? (session.user as any).id : null,
       clientNom,
       clientEmail,
-      articles,    // les totaux sont calculés dans le hook pre-save
+      articles:    safeArticles,    // les totaux sont calculés dans le hook pre-save
     });
 
     return NextResponse.json(commande, { status: 201 });
   } catch (err: any) {
     console.error('[POST /api/commandes]', err);
     return NextResponse.json(
-      { error: err.message ?? 'Erreur serveur.' },
+      { error: 'Erreur serveur.' },
       { status: 500 }
     );
   }

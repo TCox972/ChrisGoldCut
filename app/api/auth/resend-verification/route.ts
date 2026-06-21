@@ -3,11 +3,20 @@ import crypto from 'crypto';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
 import { notifyEmailVerification } from '@/lib/notifications';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 // ─── POST /api/auth/resend-verification ─────────────────────────────────────
 // Renvoie l'email de validation à un compte non encore vérifié.
 // Body : { email: string }
 export async function POST(req: NextRequest) {
+  const rl = rateLimit({ key: `resend:${getClientIp(req)}`, limit: 5, windowMs: 15 * 60 * 1000 });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: 'Trop de demandes. Réessayez plus tard.' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } },
+    );
+  }
+
   try {
     await connectDB();
     const { email } = await req.json();

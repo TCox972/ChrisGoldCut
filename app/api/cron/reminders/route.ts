@@ -8,9 +8,11 @@ import { notifyReminder24h } from '@/lib/notifications';
 // Doit être appelé toutes les heures par un cron (Vercel Cron, etc.)
 // Protection : vérifier le header Authorization avec CRON_SECRET.
 export async function GET(req: NextRequest) {
-  // Sécurisation : seul un appel avec le bon secret peut déclencher
+  // Sécurisation : seul un appel avec le bon secret peut déclencher.
+  // Fail-closed : si CRON_SECRET n'est pas configuré, on refuse TOUT appel
+  // (plutôt que d'ouvrir la route à n'importe qui).
   const secret = req.headers.get('authorization')?.replace('Bearer ', '');
-  if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
+  if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Non autorisé.' }, { status: 401 });
   }
 

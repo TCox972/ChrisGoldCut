@@ -10,6 +10,7 @@ import { requireAuth, getSession } from '@/lib/auth';
 import { getOccupiedSlots, isSlotAvailable, parseDuree, dateToSlot, generateAllSlots } from '@/lib/slots';
 import { dayStartUTC, dayEndUTC, toDateStrUTC } from '@/lib/dates';
 import { notifyBookingConfirmation } from '@/lib/notifications';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 // ─── GET /api/reservations ─────────────────────────────────────────────────────
 // Params optionnels : statut, limit, month, employeId
@@ -72,6 +73,14 @@ export async function GET(req: NextRequest) {
 
 // ─── POST /api/reservations ────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
+  const rl = rateLimit({ key: `reservation:${getClientIp(req)}`, limit: 10, windowMs: 10 * 60 * 1000 });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: 'Trop de réservations en peu de temps. Réessayez plus tard.' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } },
+    );
+  }
+
   try {
     await connectDB();
     const session = await getSession();

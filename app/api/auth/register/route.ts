@@ -6,8 +6,17 @@ import Reservation from '@/models/Reservation';
 import CommandeAchat from '@/models/CommandeAchat';
 import { validatePassword } from '@/lib/password';
 import { notifyEmailVerification } from '@/lib/notifications';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
+  const rl = rateLimit({ key: `register:${getClientIp(req)}`, limit: 5, windowMs: 10 * 60 * 1000 });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: 'Trop de tentatives. Réessayez dans quelques minutes.' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } },
+    );
+  }
+
   try {
     const { prenom, nom = '', email, password, telephone = '' } = await req.json();
 

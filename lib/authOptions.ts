@@ -2,6 +2,7 @@ import { type NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
+import { rateLimit, getIpFromHeaders } from '@/lib/rate-limit';
 
 // ─── Configuration NextAuth ──────────────────────────────────────────────────
 // Déplacée hors de `app/api/auth/[...nextauth]/route.ts` car Next.js App Router
@@ -17,19 +18,28 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Mot de passe',   type: 'password' },
       },
 
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error('Email et mot de passe requis.');
+        }
+
+        // Anti-brute-force : limite les tentatives de connexion par IP.
+        const ip = getIpFromHeaders(req?.headers as Record<string, string> | undefined);
+        const rl = rateLimit({ key: `login:${ip}`, limit: 10, windowMs: 5 * 60 * 1000 });
+        if (!rl.ok) {
+          throw new Error('Trop de tentatives de connexion. Réessayez dans quelques minutes.');
         }
 
         await connectDB();
 
         const user = await User.findOne({ email: credentials.email.toLowerCase() });
 
-        if (!user) throw new Error('Aucun compte associé à cet email.');
+        // Message volontairement identique pour compte inexistant ET mauvais
+        // mot de passe → empêche l'énumération de comptes.
+        if (!user) throw new Error('Identifiants incorrects.');
 
         const isValid = await user.comparePassword(credentials.password);
-        if (!isValid) throw new Error('Mot de passe incorrect.');
+        if (!isValid) throw new Error('Identifiants incorrects.');
 
         // Bloque la connexion tant que l'email n'est pas validé.
         // `emailVerified === false` ne concerne que les inscriptions publiques en
