@@ -16,16 +16,17 @@ const prestationsHome = [
 ];
 
 // Photos par défaut (Unsplash) : utilisées uniquement tant que l'admin n'a pas
-// encore ajouté de photos dans /admin/galerie.
+// encore ajouté de photos dans /admin/galerie. 6 visuels → 2 rangées de 3.
+// Thème : accessoires de barber + scènes de coupe en barbershop.
 const FALLBACK_PHOTOS = [
-  'https://images.unsplash.com/photo-1567894340315-735d7c361db0?w=400&q=80',
-  'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=400&q=80',
-  'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=400&q=80',
-  'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400&q=80',
-  'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&q=80',
-  'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=400&q=80',
-  'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=400&q=80',
-  'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=400&q=80',
+  // — Accessoires / outils de barber —
+  'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600&q=80', // tondeuse / dégradé
+  'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&q=80', // ciseaux & outils
+  'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=600&q=80', // accessoires barbershop
+  // — Personnes se faisant coiffer —
+  'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=600&q=80', // coupe en salon
+  'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=600&q=80', // fauteuil & coiffeur
+  'https://images.unsplash.com/photo-1567894340315-735d7c361db0?w=600&q=80', // client dans le fauteuil
 ];
 
 const marques = ['Uncle Jimmy', 'OKAY MEN', 'Reuzel Professional'];
@@ -102,16 +103,20 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ─── Photo Gallery ──────────────────────────────────────────────── */}
-      <section className="py-0 overflow-hidden" style={{ backgroundColor: '#1A1A1A' }}>
-        <div className="grid grid-cols-4 md:grid-cols-8 h-48 md:h-56">
-          {photos.slice(0, 8).map((src, i) => (
-            <div key={i} className="relative overflow-hidden group">
-              <div className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
-                style={{ backgroundImage: `url(${src})` }} />
-              <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-300" />
-            </div>
-          ))}
+      {/* ─── Photo Gallery (2 rangées de 3) ─────────────────────────────── */}
+      <section className="py-20 px-6" style={{ backgroundColor: '#1A1A1A' }}>
+        <div className="max-w-5xl mx-auto">
+          <SectionTitle dark className="mb-14">Galerie</SectionTitle>
+          <div className="grid grid-cols-3 gap-3 md:gap-4">
+            {photos.slice(0, 6).map((src, i) => (
+              <div key={i} className="relative aspect-square overflow-hidden rounded-lg group"
+                style={{ border: '1px solid rgba(212,160,23,0.25)' }}>
+                <div className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
+                  style={{ backgroundImage: `url(${src})` }} />
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/15 transition-colors duration-300" />
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
