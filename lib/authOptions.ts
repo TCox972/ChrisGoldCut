@@ -31,6 +31,14 @@ export const authOptions: NextAuthOptions = {
         const isValid = await user.comparePassword(credentials.password);
         if (!isValid) throw new Error('Mot de passe incorrect.');
 
+        // Bloque la connexion tant que l'email n'est pas validé.
+        // `emailVerified === false` ne concerne que les inscriptions publiques en
+        // attente : les comptes plus anciens / créés par l'admin ont le champ à
+        // `undefined` et passent donc librement.
+        if (user.emailVerified === false) {
+          throw new Error('EMAIL_NOT_VERIFIED');
+        }
+
         // L'objet retourné est encodé dans le JWT
         return {
           id:        user._id.toString(),

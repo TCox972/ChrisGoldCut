@@ -133,9 +133,10 @@ export default function AdminEmployesPage() {
         message={pendingDelete
           ? `${pendingDelete.prenom} ${pendingDelete.nom} sera supprimé définitivement. Ses rendez-vous à venir seront dissociés et devront être réassignés à un autre employé.`
           : ''}
-        confirmLabel="Supprimer"
+        confirmLabel="Supprimer définitivement"
         variant="danger"
         loading={deleting}
+        requireConfirmText={pendingDelete ? `${pendingDelete.prenom} ${pendingDelete.nom}`.trim() : undefined}
         onConfirm={doDelete}
         onCancel={() => setPendingDelete(null)}
       />

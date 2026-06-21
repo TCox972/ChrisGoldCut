@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AlertTriangle, X, Loader2 } from 'lucide-react';
 
 type ConfirmModalProps = {
@@ -11,6 +11,11 @@ type ConfirmModalProps = {
   cancelLabel?: string;
   variant?: 'danger' | 'default';
   loading?: boolean;
+  /**
+   * Double sécurité : si renseigné, l'utilisateur doit recopier exactement ce
+   * texte (ex. le nom de l'élément) pour débloquer le bouton de confirmation.
+   */
+  requireConfirmText?: string;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -29,9 +34,17 @@ export default function ConfirmModal({
   cancelLabel = 'Annuler',
   variant = 'default',
   loading = false,
+  requireConfirmText,
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
+  const [typed, setTyped] = useState('');
+
+  // Réinitialise la saisie à chaque ouverture/fermeture de la modale.
+  useEffect(() => {
+    if (!open) setTyped('');
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -44,6 +57,8 @@ export default function ConfirmModal({
   if (!open) return null;
 
   const isDanger = variant === 'danger';
+  const textMismatch = !!requireConfirmText && typed.trim() !== requireConfirmText.trim();
+  const confirmDisabled = loading || textMismatch;
 
   return (
     <div
@@ -87,6 +102,26 @@ export default function ConfirmModal({
           </div>
         </div>
 
+        {requireConfirmText && (
+          <div className="mt-4">
+            <label className="font-body text-xs text-gray-500 mb-1.5 block">
+              Pour confirmer, saisissez «&nbsp;<strong className="text-gray-700">{requireConfirmText}</strong>&nbsp;» :
+            </label>
+            <input
+              type="text"
+              value={typed}
+              onChange={e => setTyped(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !confirmDisabled) onConfirm(); }}
+              disabled={loading}
+              autoFocus
+              autoComplete="off"
+              placeholder={requireConfirmText}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 font-body text-sm text-gray-900
+                placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-red-400/50 disabled:opacity-50"
+            />
+          </div>
+        )}
+
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-5">
           <button
             type="button"
@@ -100,9 +135,9 @@ export default function ConfirmModal({
           <button
             type="button"
             onClick={onConfirm}
-            disabled={loading}
+            disabled={confirmDisabled}
             className={`font-body text-sm font-semibold px-4 py-2 rounded-lg transition-colors
-              flex items-center justify-center gap-2 disabled:opacity-60
+              flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed
               ${isDanger
                 ? 'bg-red-600 text-white hover:bg-red-700'
                 : 'bg-gray-900 text-white hover:bg-gray-800'}`}

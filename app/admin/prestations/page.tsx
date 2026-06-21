@@ -19,12 +19,15 @@ type Draft = Omit<Prestation, '_id' | 'actif'>;
 const EMPTY_DRAFT: Draft = { categorie: '', nom: '', duree: '30 min', prix: 0 };
 
 export default function AdminPrestationsPage() {
+  const [tab,     setTab]     = useState<'actives' | 'desactives'>('actives');
   const [items,   setItems]   = useState<Prestation[]>([]);
   const [loading, setLoading] = useState(true);
   const [editId,  setEditId]  = useState<string | null>(null);
   const [draft,   setDraft]   = useState<Draft>(EMPTY_DRAFT);
   const [saving,  setSaving]  = useState(false);
   const [adding,  setAdding]  = useState(false);
+
+  const inactiveCount = useMemo(() => items.filter(i => !i.actif).length, [items]);
 
   // Toast d'erreur global (auto-disparition après 5 s)
   const [actionError, setActionError] = useState('');
@@ -55,16 +58,17 @@ export default function AdminPrestationsPage() {
     return [...inOrder, ...rest];
   }, [catOrder, availableCategories]);
 
-  // Items filtrés
+  // Items filtrés selon l'onglet (actives / désactivées) puis par catégorie
   const displayedItems = useMemo(() => {
-    const filtered = filterCat ? items.filter(i => i.categorie === filterCat) : items;
+    const byTab = items.filter(i => tab === 'actives' ? i.actif : !i.actif);
+    const filtered = filterCat ? byTab.filter(i => i.categorie === filterCat) : byTab;
     // Trier par ordre de catégorie
     return [...filtered].sort((a, b) => {
       const ia = orderedCategories.indexOf(a.categorie);
       const ib = orderedCategories.indexOf(b.categorie);
       return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
     });
-  }, [items, filterCat, orderedCategories]);
+  }, [items, tab, filterCat, orderedCategories]);
 
   // ─── Chargement ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -169,6 +173,30 @@ export default function AdminPrestationsPage() {
     }
   };
 
+  // ─── Suppression définitive (DELETE ?hard=true) ────────────────────────────
+  const [pendingHardDelete, setPendingHardDelete] = useState<Prestation | null>(null);
+  const askHardDelete = (p: Prestation) => setPendingHardDelete(p);
+
+  const supprimerDefinitif = async () => {
+    if (!pendingHardDelete) return;
+    setActionLoading(true);
+    try {
+      const id = pendingHardDelete._id;
+      const res = await fetch(`/api/prestations/${id}?hard=true`, { method: 'DELETE' });
+      if (res.ok) {
+        setItems(prev => prev.filter(p => p._id !== id));
+        setPendingHardDelete(null);
+      } else {
+        const data = await res.json().catch(() => null);
+        setActionError(data?.error || 'Impossible de supprimer cette prestation. Réessayez.');
+      }
+    } catch {
+      setActionError('Erreur réseau. Vérifiez votre connexion.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // ─── Réactivation ─────────────────────────────────────────────────────────
   const reactiver = async (id: string) => {
     try {
@@ -236,6 +264,20 @@ export default function AdminPrestationsPage() {
         onCancel={() => setPendingDelete(null)}
       />
 
+      {/* Modale de confirmation suppression définitive */}
+      <ConfirmModal
+        open={!!pendingHardDelete}
+        title="Supprimer définitivement ?"
+        message={pendingHardDelete
+          ? `« ${pendingHardDelete.nom} » sera supprimée définitivement et ne pourra pas être récupérée. Les réservations passées ne sont pas affectées.`
+          : ''}
+        confirmLabel="Supprimer définitivement"
+        variant="danger"
+        loading={actionLoading}
+        onConfirm={supprimerDefinitif}
+        onCancel={() => setPendingHardDelete(null)}
+      />
+
       {/* Toast d'erreur (auto-disparition) */}
       {actionError && (
         <div className="fixed top-6 right-6 z-50 max-w-sm bg-red-600 text-white rounded-lg shadow-xl px-4 py-3 flex items-start gap-3">
@@ -253,6 +295,7 @@ export default function AdminPrestationsPage() {
 
       <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
         <h1 className="font-body text-2xl font-bold text-gray-900">Prestations</h1>
+        {tab === 'actives' && (
         <div className="flex items-center gap-3">
           {/* Filtre catégorie */}
           <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5">
@@ -280,10 +323,25 @@ export default function AdminPrestationsPage() {
             <GripVertical size={14} /> Ordre des catégories
           </button>
         </div>
+        )}
+      </div>
+
+      {/* Barre d'onglets */}
+      <div className="flex gap-6 border-b border-gray-200 mb-6">
+        {([
+          ['actives', 'Actives'],
+          ['desactives', `Désactivées${inactiveCount ? ` (${inactiveCount})` : ''}`],
+        ] as const).map(([t, label]) => (
+          <button key={t} onClick={() => { setTab(t); cancelEdit(); }}
+            className={`pb-3 -mb-px font-body text-sm font-medium transition-colors border-b-2
+              ${tab === t ? 'text-gray-900 border-yellow-400' : 'text-gray-400 border-transparent hover:text-gray-600'}`}>
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Panel de réordonnement */}
-      {showOrder && (
+      {showOrder && tab === 'actives' && (
         <div className="bg-white rounded-lg border border-yellow-200 p-4 mb-6">
           <p className="font-body text-xs text-gray-500 mb-3">
             Réorganisez l'ordre d'affichage des catégories sur la vitrine du site :
@@ -350,7 +408,7 @@ export default function AdminPrestationsPage() {
               {displayedItems.map(item => {
                 const isEditing = editId === item._id;
                 return (
-                  <tr key={item._id} className={`hover:bg-gray-50 transition-colors ${!item.actif ? 'opacity-40' : ''}`}>
+                  <tr key={item._id} className="hover:bg-gray-50 transition-colors">
                     {/* Catégorie */}
                     <td className="px-6 py-3">
                       {isEditing ? (
@@ -423,20 +481,23 @@ export default function AdminPrestationsPage() {
                               <X size={15} />
                             </button>
                           </>
-                        ) : (
+                        ) : item.actif ? (
                           <>
                             <button onClick={() => startEdit(item)} className="text-gray-300 hover:text-yellow-500 transition-colors" aria-label="Modifier">
                               <Edit3 size={15} />
                             </button>
-                            {item.actif ? (
-                              <button onClick={() => askDelete(item)} className="text-gray-300 hover:text-red-400 transition-colors" aria-label="Désactiver">
-                                <Trash2 size={15} />
-                              </button>
-                            ) : (
-                              <button onClick={() => reactiver(item._id)} className="text-gray-300 hover:text-green-500 transition-colors" aria-label="Réactiver" title="Réactiver">
-                                <RotateCcw size={15} />
-                              </button>
-                            )}
+                            <button onClick={() => askDelete(item)} className="text-gray-300 hover:text-red-400 transition-colors" aria-label="Désactiver" title="Désactiver">
+                              <Trash2 size={15} />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button onClick={() => reactiver(item._id)} className="text-gray-300 hover:text-green-500 transition-colors" aria-label="Réactiver" title="Réactiver">
+                              <RotateCcw size={15} />
+                            </button>
+                            <button onClick={() => askHardDelete(item)} className="text-gray-300 hover:text-red-500 transition-colors" aria-label="Supprimer définitivement" title="Supprimer définitivement">
+                              <Trash2 size={15} />
+                            </button>
                           </>
                         )}
                       </div>
@@ -444,6 +505,13 @@ export default function AdminPrestationsPage() {
                   </tr>
                 );
               })}
+
+              {/* ── État vide ── */}
+              {displayedItems.length === 0 && !adding && (
+                <tr><td colSpan={5} className="text-center px-6 py-12 font-body text-sm text-gray-400">
+                  {tab === 'actives' ? 'Aucune prestation active.' : 'Aucune prestation désactivée.'}
+                </td></tr>
+              )}
 
               {/* ── Ligne d'ajout ── */}
               {adding && (
@@ -499,15 +567,17 @@ export default function AdminPrestationsPage() {
             </tbody>
           </table>
 
-          {/* Bouton ajouter */}
-          <div className="px-6 py-4 border-t border-gray-100">
-            <button
-              onClick={startAdd} disabled={adding}
-              className="flex items-center gap-2 font-body text-sm text-gray-500 hover:text-gray-900 disabled:opacity-40 transition-colors"
-            >
-              <Plus size={14} /> Ajouter une prestation
-            </button>
-          </div>
+          {/* Bouton ajouter (onglet Actives uniquement) */}
+          {tab === 'actives' && (
+            <div className="px-6 py-4 border-t border-gray-100">
+              <button
+                onClick={startAdd} disabled={adding}
+                className="flex items-center gap-2 font-body text-sm text-gray-500 hover:text-gray-900 disabled:opacity-40 transition-colors"
+              >
+                <Plus size={14} /> Ajouter une prestation
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

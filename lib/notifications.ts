@@ -1,5 +1,9 @@
 import { sendMail } from '@/lib/mail';
-// import { sendSMS } from '@/lib/sms'; // WhatsApp désactivé pour le moment
+import { sendWhatsAppTemplate } from '@/lib/sms';
+
+// Nom du template WhatsApp approuvé pour la confirmation de RDV.
+// Configurable via env pour ne pas avoir à redéployer si le template change.
+const WA_CONFIRM_TEMPLATE = process.env.WHATSAPP_CONFIRM_TEMPLATE || 'confirmation_rdv';
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
@@ -49,6 +53,43 @@ type RdvInfo = {
   pourQui: string;
 };
 
+// ─── 0. Validation d'email à l'inscription ───────────────────────────────────
+
+export async function notifyEmailVerification(opts: {
+  prenom: string;
+  email: string;
+  token: string;
+}) {
+  const verifyUrl = `${BASE_URL}/verifier-email/${opts.token}`;
+
+  await sendMail({
+    to: opts.email,
+    subject: 'Gold Cut — Validez votre compte',
+    html: emailLayout(`
+      <h2 style="font-size: 18px; color: #111; margin-bottom: 8px;">Bienvenue chez Gold Cut !</h2>
+      <p style="font-size: 14px; color: #555; line-height: 1.6;">
+        Bonjour <strong>${opts.prenom}</strong>,
+      </p>
+      <p style="font-size: 14px; color: #555; line-height: 1.6;">
+        Merci de votre inscription. Pour activer votre compte, veuillez confirmer
+        votre adresse e-mail en cliquant sur le bouton ci-dessous :
+      </p>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${verifyUrl}"
+          style="display: inline-block; background: #D4A017; color: #111; font-weight: bold;
+            font-size: 14px; letter-spacing: 1px; text-decoration: none;
+            padding: 14px 32px; border-radius: 6px;">
+          Valider mon compte
+        </a>
+      </div>
+      <p style="font-size: 12px; color: #999; line-height: 1.6;">
+        Ce lien est valable <strong>24 heures</strong>. Si vous n'êtes pas à l'origine
+        de cette inscription, ignorez simplement cet e-mail.
+      </p>
+    `),
+  });
+}
+
 // ─── 1. Confirmation de réservation ──────────────────────────────────────────
 
 export async function notifyBookingConfirmation(rdv: RdvInfo) {
@@ -86,6 +127,17 @@ export async function notifyBookingConfirmation(rdv: RdvInfo) {
       </p>
     `),
   }).catch(err => console.error('[notifyBookingConfirmation] email error:', err));
+
+  // WhatsApp (non bloquant) — template approuvé requis pour un message à l'initiative du salon.
+  // Variables attendues par le template, dans l'ordre :
+  //   {{1}} = nom du client, {{2}} = date, {{3}} = heure, {{4}} = numéro de réservation
+  if (rdv.clientTel) {
+    await sendWhatsAppTemplate({
+      to: rdv.clientTel,
+      template: WA_CONFIRM_TEMPLATE,
+      params: [rdv.clientNom, formatDate(date), formatHeure(date), rdv.numero],
+    }).catch(err => console.error('[notifyBookingConfirmation] WhatsApp error:', err));
+  }
 }
 
 // ─── 2. Rappel 24h avant ────────────────────────────────────────────────────

@@ -24,7 +24,7 @@ export default function Navbar({ dark = true }: { dark?: boolean }) {
   const { user, logout, isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
 
-  const base = dark ? 'text-white/80 hover:text-yellow-400' : 'text-gray-800 hover:text-yellow-600';
+  const base = dark ? 'text-white hover:text-yellow-400' : 'text-gray-900 hover:text-yellow-600';
   const isActive = (href: string) => href === '/' ? pathname === '/' : pathname.startsWith(href);
 
   return (
@@ -35,7 +35,7 @@ export default function Navbar({ dark = true }: { dark?: boolean }) {
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map(l => (
             <Link key={l.href} href={l.href}
-              className={`font-display text-[10px] tracking-[0.22em] uppercase transition-colors duration-200 ${isActive(l.href) ? 'text-yellow-400' : base}`}>
+              className={`font-display text-xs tracking-[0.2em] uppercase transition-colors duration-200 ${isActive(l.href) ? 'text-yellow-400' : base}`}>
               {l.label}
             </Link>
           ))}
@@ -55,7 +55,7 @@ export default function Navbar({ dark = true }: { dark?: boolean }) {
         <div className="hidden md:flex items-center gap-8">
           {navLinksRight.map(l => (
             <Link key={l.href} href={l.href}
-              className={`font-display text-[10px] tracking-[0.22em] uppercase transition-colors duration-200 relative
+              className={`font-display text-xs tracking-[0.2em] uppercase transition-colors duration-200 relative
                 ${l.href === '/reservation' ? 'text-yellow-400 font-bold' : isActive(l.href) ? 'text-yellow-400' : base}`}>
               {l.label}
               {l.href === '/panier' && totalItems > 0 && (
@@ -70,7 +70,7 @@ export default function Navbar({ dark = true }: { dark?: boolean }) {
           ))}
           {isAuthenticated && (user?.isAdmin || user?.isEmploye) && (
             <Link href="/admin/reservations"
-              className="font-display text-[10px] tracking-[0.22em] uppercase transition-colors duration-200 text-yellow-400 font-bold">
+              className="font-display text-xs tracking-[0.2em] uppercase transition-colors duration-200 text-yellow-400 font-bold">
               Admin
             </Link>
           )}
@@ -80,7 +80,7 @@ export default function Navbar({ dark = true }: { dark?: boolean }) {
               onClick={() => logout()}
               aria-label="Se déconnecter"
               title="Se déconnecter"
-              className={`font-display text-[10px] tracking-[0.22em] uppercase transition-colors duration-200 ${base}`}
+              className={`font-display text-xs tracking-[0.2em] uppercase transition-colors duration-200 ${base}`}
             >
               Déco.
             </button>

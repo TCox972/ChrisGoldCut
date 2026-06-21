@@ -1,21 +1,30 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/lib/auth-context';
+import { validatePassword } from '@/lib/password';
 import Link from 'next/link';
 
 export default function InscriptionPage() {
   const [form, setForm] = useState({ prenom: '', nom: '', email: '', telephone: '', password: '', confirm: '' });
-  const [error,   setError]   = useState('');
-  const [loading, setLoading] = useState(false);
+  const [error,     setError]     = useState('');
+  const [loading,   setLoading]   = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const { register } = useAuth();
-  const router = useRouter();
 
   const handle = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  // Critères de robustesse du mot de passe (affichage temps réel)
+  const pwd = form.password;
+  const passwordCriteria = [
+    { label: 'Au moins 10 caractères', ok: pwd.length >= 10 },
+    { label: 'Une majuscule',          ok: /[A-Z]/.test(pwd) },
+    { label: 'Un chiffre',             ok: /[0-9]/.test(pwd) },
+    { label: 'Un caractère spécial',   ok: /[^A-Za-z0-9]/.test(pwd) },
+  ];
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,8 +34,9 @@ export default function InscriptionPage() {
       setError('Les mots de passe ne correspondent pas.');
       return;
     }
-    if (form.password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères.');
+    const pwdError = validatePassword(form.password);
+    if (pwdError) {
+      setError(pwdError);
       return;
     }
 
@@ -38,7 +48,7 @@ export default function InscriptionPage() {
     setLoading(false);
 
     if (result.ok) {
-      router.push('/compte/informations');
+      setSubmitted(true);
     } else {
       setError(result.error ?? 'Une erreur est survenue.');
     }
@@ -58,6 +68,25 @@ export default function InscriptionPage() {
           <div className="w-full max-w-md rounded-lg p-10"
             style={{ backgroundColor: 'rgba(30,25,15,0.92)', border: '1px solid rgba(212,160,23,0.3)' }}>
 
+            {submitted ? (
+              <div className="text-center">
+                <h1 className="font-display text-xl tracking-[0.25em] uppercase text-white mb-6 font-bold">
+                  Vérifiez vos emails
+                </h1>
+                <p className="font-body text-sm text-white/70 leading-relaxed mb-2">
+                  Un email de validation a été envoyé à{' '}
+                  <strong className="text-white">{form.email}</strong>.
+                </p>
+                <p className="font-body text-sm text-white/70 leading-relaxed mb-6">
+                  Cliquez sur le lien qu'il contient pour activer votre compte,
+                  puis connectez-vous. Pensez à vérifier vos spams.
+                </p>
+                <Link href="/connexion" className="btn-gold inline-block px-8">
+                  Aller à la connexion
+                </Link>
+              </div>
+            ) : (
+            <>
             <h1 className="font-display text-xl tracking-[0.25em] uppercase text-white text-center mb-8 font-bold">
               Créer Un Compte
             </h1>
@@ -78,8 +107,20 @@ export default function InscriptionPage() {
                 placeholder="Téléphone (+596 696 ...)" className="input-gold text-white"
                 style={{ backgroundColor: 'rgba(255,255,255,0.05)' }} />
               <input name="password" type="password" value={form.password} onChange={handle}
-                placeholder="Mot de passe (min. 6 caractères) *" required className="input-gold text-white"
+                placeholder="Mot de passe *" required className="input-gold text-white"
                 style={{ backgroundColor: 'rgba(255,255,255,0.05)' }} />
+
+              {/* Critères de robustesse — passent au vert quand respectés */}
+              <ul className="flex flex-col gap-1 -mt-1">
+                {passwordCriteria.map(c => (
+                  <li key={c.label} className="flex items-center gap-2 text-xs"
+                    style={{ color: c.ok ? '#6ee7a8' : 'rgba(255,255,255,0.45)' }}>
+                    <span>{c.ok ? '✓' : '○'}</span>
+                    {c.label}
+                  </li>
+                ))}
+              </ul>
+
               <input name="confirm" type="password" value={form.confirm} onChange={handle}
                 placeholder="Confirmer mot de passe *" required className="input-gold text-white"
                 style={{ backgroundColor: 'rgba(255,255,255,0.05)' }} />
@@ -99,6 +140,8 @@ export default function InscriptionPage() {
                 Connectez-vous
               </Link>
             </div>
+            </>
+            )}
           </div>
         </div>
       </div>

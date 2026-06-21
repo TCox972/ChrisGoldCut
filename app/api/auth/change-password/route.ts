@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { connectDB } from '@/lib/mongodb';
 import { requireAuth } from '@/lib/auth';
 import User from '@/models/User';
+import { validatePassword } from '@/lib/password';
 
 // ─── POST /api/auth/change-password ─────────────────────────────────────────
 // Permet à un utilisateur connecté de changer son mot de passe.
@@ -22,11 +23,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (newPassword.length < 6) {
-      return NextResponse.json(
-        { error: 'Le nouveau mot de passe doit contenir au moins 6 caractères.' },
-        { status: 400 },
-      );
+    const pwdError = validatePassword(newPassword);
+    if (pwdError) {
+      return NextResponse.json({ error: pwdError }, { status: 400 });
     }
 
     const userId = (session!.user as any).id;

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { CartProvider } from '@/lib/cart-context';
 import Providers from '@/components/Providers';
+import CookieConsent from '@/components/public/CookieConsent';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://goldcut.fr';
 const SITE_NAME = 'Gold Cut';
@@ -198,6 +199,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <CartProvider>
             {children}
+            <CookieConsent />
           </CartProvider>
         </Providers>
       </body>

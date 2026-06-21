@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import { validatePassword, PASSWORD_RULES_LABEL } from '@/lib/password';
 import Link from 'next/link';
 
 export default function ResetPasswordPage() {
@@ -20,8 +21,9 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     setError('');
 
-    if (password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères.');
+    const pwdError = validatePassword(password);
+    if (pwdError) {
+      setError(pwdError);
       return;
     }
     if (password !== confirm) {
@@ -83,11 +85,14 @@ export default function ResetPasswordPage() {
             ) : (
               <form onSubmit={submit} className="flex flex-col gap-4">
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                  placeholder="Nouveau mot de passe" required minLength={6}
+                  placeholder="Nouveau mot de passe" required minLength={10}
                   className="input-gold text-white"
                   style={{ backgroundColor: 'rgba(255,255,255,0.05)' }} />
+                <p className="text-xs -mt-2" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                  {PASSWORD_RULES_LABEL}
+                </p>
                 <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
-                  placeholder="Confirmer le mot de passe" required minLength={6}
+                  placeholder="Confirmer le mot de passe" required minLength={10}
                   className="input-gold text-white"
                   style={{ backgroundColor: 'rgba(255,255,255,0.05)' }} />
 

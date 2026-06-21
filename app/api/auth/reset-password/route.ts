@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
+import { validatePassword } from '@/lib/password';
 
 // ─── POST /api/auth/reset-password ──────────────────────────────────────────
 // Réinitialise le mot de passe via le token reçu par e-mail.
@@ -18,11 +19,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: 'Le mot de passe doit contenir au moins 6 caractères.' },
-        { status: 400 },
-      );
+    const pwdError = validatePassword(password);
+    if (pwdError) {
+      return NextResponse.json({ error: pwdError }, { status: 400 });
     }
 
     // Recherche via driver natif (bypass HMR schema cache)

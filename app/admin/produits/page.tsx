@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Edit3, Trash2, Plus, Check, X, Loader2, Ban, ChevronUp, ChevronDown, Filter, GripVertical, Upload, Image as ImageIcon } from 'lucide-react';
+import { Edit3, Trash2, Plus, Check, X, Loader2, Ban, ChevronUp, ChevronDown, Filter, GripVertical, Upload, Image as ImageIcon, RotateCcw } from 'lucide-react';
 import CategorySelect from '@/components/ui/CategorySelect';
 import ConfirmModal from '@/components/admin/ConfirmModal';
 
@@ -20,7 +20,7 @@ type CommandeAdmin = {
 };
 
 export default function AdminProduitsPage() {
-  const [tab,      setTab]      = useState<'liste' | 'achats'>('liste');
+  const [tab,      setTab]      = useState<'liste' | 'desactives' | 'achats'>('liste');
   const [produits, setProduits] = useState<Produit[]>([]);
   const [commandes,setCommandes]= useState<CommandeAdmin[]>([]);
   const [loadingP, setLoadingP] = useState(true);
@@ -64,15 +64,26 @@ export default function AdminProduitsPage() {
     return [...inOrder, ...rest];
   }, [catOrder, availableCategories]);
 
-  // Produits filtrés et triés
-  const displayedProduits = useMemo(() => {
-    const filtered = filterCat ? produits.filter(p => p.categorie === filterCat) : produits;
-    return [...filtered].sort((a, b) => {
+  const sortByCategory = (list: Produit[]) =>
+    [...list].sort((a, b) => {
       const ia = orderedCategories.indexOf(a.categorie);
       const ib = orderedCategories.indexOf(b.categorie);
       return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
     });
+
+  // Produits actifs filtrés et triés (onglet « Liste »)
+  const displayedProduits = useMemo(() => {
+    const actifs = produits.filter(p => p.actif);
+    const filtered = filterCat ? actifs.filter(p => p.categorie === filterCat) : actifs;
+    return sortByCategory(filtered);
   }, [produits, filterCat, orderedCategories]);
+
+  // Produits désactivés triés (onglet « Désactivés »)
+  const inactiveProduits = useMemo(
+    () => sortByCategory(produits.filter(p => !p.actif)),
+    [produits, orderedCategories],
+  );
+  const inactiveCount = inactiveProduits.length;
 
   // ─── Chargement produits ──────────────────────────────────────────────────
   useEffect(() => {
@@ -222,14 +233,37 @@ export default function AdminProduitsPage() {
   // Le pendingAction décrit l'action à exécuter quand l'utilisateur confirme.
   type PendingAction =
     | { type: 'deleteProduit'; id: string; nom: string }
+    | { type: 'hardDeleteProduit'; id: string; nom: string }
     | { type: 'cancelCommande'; id: string; numero: string };
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const askDeleteProduit = (p: Produit) =>
     setPendingAction({ type: 'deleteProduit', id: p._id, nom: p.nom });
+  const askHardDeleteProduit = (p: Produit) =>
+    setPendingAction({ type: 'hardDeleteProduit', id: p._id, nom: p.nom });
   const askCancelCommande = (c: CommandeAdmin) =>
     setPendingAction({ type: 'cancelCommande', id: c._id, numero: c.numero });
+
+  // Réactivation directe (sans confirmation)
+  const reactivateProduit = async (id: string) => {
+    try {
+      const res = await fetch(`/api/produits/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actif: true }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setProduits(prev => prev.map(p => p._id === id ? updated : p));
+      } else {
+        const data = await res.json().catch(() => null);
+        setActionError(data?.error || 'Impossible de réactiver ce produit. Réessayez.');
+      }
+    } catch {
+      setActionError('Erreur réseau. Vérifiez votre connexion.');
+    }
+  };
 
   const runPendingAction = async () => {
     if (!pendingAction) return;
@@ -238,11 +272,22 @@ export default function AdminProduitsPage() {
       if (pendingAction.type === 'deleteProduit') {
         const res = await fetch(`/api/produits/${pendingAction.id}`, { method: 'DELETE' });
         if (res.ok) {
-          setProduits(prev => prev.filter(p => p._id !== pendingAction.id));
+          // Désactivation : on garde le produit en mémoire avec actif=false
+          // (il bascule dans l'onglet « Désactivés »).
+          setProduits(prev => prev.map(p => p._id === pendingAction.id ? { ...p, actif: false } : p));
           setPendingAction(null);
         } else {
           const data = await res.json().catch(() => null);
           setActionError(data?.error || 'Impossible de désactiver ce produit. Réessayez.');
+        }
+      } else if (pendingAction.type === 'hardDeleteProduit') {
+        const res = await fetch(`/api/produits/${pendingAction.id}?hard=true`, { method: 'DELETE' });
+        if (res.ok) {
+          setProduits(prev => prev.filter(p => p._id !== pendingAction.id));
+          setPendingAction(null);
+        } else {
+          const data = await res.json().catch(() => null);
+          setActionError(data?.error || 'Impossible de supprimer ce produit. Réessayez.');
         }
       } else if (pendingAction.type === 'cancelCommande') {
         const res = await fetch(`/api/commandes/${pendingAction.id}`, {
@@ -266,15 +311,23 @@ export default function AdminProduitsPage() {
 
   const pendingTitle = pendingAction?.type === 'deleteProduit'
     ? 'Désactiver ce produit ?'
-    : pendingAction?.type === 'cancelCommande'
-      ? 'Annuler cette commande ?'
-      : '';
+    : pendingAction?.type === 'hardDeleteProduit'
+      ? 'Supprimer définitivement ?'
+      : pendingAction?.type === 'cancelCommande'
+        ? 'Annuler cette commande ?'
+        : '';
   const pendingMessage = pendingAction?.type === 'deleteProduit'
     ? `Le produit "${pendingAction.nom}" ne sera plus visible côté client. Il peut être réactivé plus tard.`
-    : pendingAction?.type === 'cancelCommande'
-      ? `La commande ${pendingAction.numero} sera marquée comme annulée. Cette action est irréversible côté client.`
-      : '';
-  const pendingConfirmLabel = pendingAction?.type === 'deleteProduit' ? 'Désactiver' : 'Annuler la commande';
+    : pendingAction?.type === 'hardDeleteProduit'
+      ? `Le produit "${pendingAction.nom}" sera supprimé définitivement et ne pourra pas être récupéré. Les commandes passées ne sont pas affectées.`
+      : pendingAction?.type === 'cancelCommande'
+        ? `La commande ${pendingAction.numero} sera marquée comme annulée. Cette action est irréversible côté client.`
+        : '';
+  const pendingConfirmLabel = pendingAction?.type === 'deleteProduit'
+    ? 'Désactiver'
+    : pendingAction?.type === 'hardDeleteProduit'
+      ? 'Supprimer définitivement'
+      : 'Annuler la commande';
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -390,12 +443,16 @@ export default function AdminProduitsPage() {
 
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {/* Onglets */}
-        <div className="grid grid-cols-2 border-b border-gray-100">
-          {(['liste', 'achats'] as const).map(t => (
+        <div className="grid grid-cols-3 border-b border-gray-100">
+          {([
+            ['liste', 'Liste des produits'],
+            ['desactives', `Désactivés${inactiveCount ? ` (${inactiveCount})` : ''}`],
+            ['achats', 'Réservations d\'achats clients'],
+          ] as const).map(([t, label]) => (
             <button key={t} onClick={() => setTab(t)}
               className={`py-4 font-body text-sm font-medium transition-colors
                 ${tab === t ? 'text-gray-900 border-b-2 border-yellow-400' : 'text-gray-400 hover:text-gray-600'}`}>
-              {t === 'liste' ? 'Liste des produits' : 'Réservations d\'achats clients'}
+              {label}
             </button>
           ))}
         </div>
@@ -418,7 +475,7 @@ export default function AdminProduitsPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {displayedProduits.map(p => (
-                    <tr key={p._id} className={`hover:bg-gray-50 transition-colors cursor-pointer ${!p.actif ? 'opacity-40' : ''}`}
+                    <tr key={p._id} className="hover:bg-gray-50 transition-colors cursor-pointer"
                       onClick={() => openEdit(p)}>
                       <td className="px-5 py-3">
                         {(p.images?.[0] || p.image) ? (
@@ -454,6 +511,57 @@ export default function AdminProduitsPage() {
               </button>
             </div>
           </>
+        )}
+
+        {/* ── Onglet produits désactivés ── */}
+        {tab === 'desactives' && (
+          loadingP ? (
+            <div className="flex items-center gap-2 text-gray-400 py-12 px-6">
+              <Loader2 size={18} className="animate-spin" /> Chargement...
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-50">
+                  {['Image', 'Catégorie', 'Désignation', 'Infos', 'Prix', ''].map(h => (
+                    <th key={h} className="font-body text-xs font-semibold text-gray-500 text-left px-5 py-4">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {inactiveProduits.length === 0 ? (
+                  <tr><td colSpan={6} className="text-center px-5 py-12 font-body text-sm text-gray-400">
+                    Aucun produit désactivé.
+                  </td></tr>
+                ) : inactiveProduits.map(p => (
+                  <tr key={p._id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-5 py-3">
+                      {(p.images?.[0] || p.image) ? (
+                        <img src={p.images?.[0] || p.image} alt={p.nom}
+                          className="w-10 h-10 rounded object-cover" />
+                      ) : (
+                        <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                          <ImageIcon size={16} className="text-gray-300" />
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 font-body text-sm text-gray-600">{p.categorie}</td>
+                    <td className="px-5 py-3 font-body text-sm text-gray-900 font-medium">{p.nom}</td>
+                    <td className="px-5 py-3 font-body text-sm text-gray-500">{p.description}</td>
+                    <td className="px-5 py-3 font-body text-sm text-gray-600">{p.prix} €</td>
+                    <td className="px-5 py-3">
+                      <div className="flex gap-3">
+                        <button onClick={() => reactivateProduit(p._id)}
+                          className="text-gray-300 hover:text-green-500 transition-colors" aria-label="Réactiver" title="Réactiver"><RotateCcw size={15} /></button>
+                        <button onClick={() => askHardDeleteProduit(p)}
+                          className="text-gray-300 hover:text-red-500 transition-colors" aria-label="Supprimer définitivement" title="Supprimer définitivement"><Trash2 size={15} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )
         )}
 
         {/* ── Onglet réservations achats ── */}

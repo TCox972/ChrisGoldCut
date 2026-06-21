@@ -18,6 +18,16 @@ export interface IUser extends Document {
   /** Token de réinitialisation du mot de passe */
   resetToken?: string;
   resetTokenExpiry?: Date;
+  /**
+   * Email vérifié via le lien de validation envoyé à l'inscription.
+   * Absent (undefined) sur les comptes antérieurs à cette fonctionnalité et
+   * sur les comptes créés par l'admin → considérés vérifiés (cf. authOptions).
+   * `false` uniquement sur les inscriptions publiques en attente de validation.
+   */
+  emailVerified?: boolean;
+  /** Token de validation d'email + expiration */
+  verifyToken?: string;
+  verifyTokenExpiry?: Date;
   /** Personnes rattachées au compte (enfants, proches) */
   autresPersonnes: { prenom: string; nom: string }[];
   createdAt: Date;
@@ -40,6 +50,9 @@ const UserSchema = new Schema<IUser>(
     blackliste:      { type: Boolean, default: false },
     resetToken:      { type: String, default: undefined },
     resetTokenExpiry:{ type: Date,   default: undefined },
+    emailVerified:    { type: Boolean, default: undefined },
+    verifyToken:      { type: String,  default: undefined },
+    verifyTokenExpiry:{ type: Date,    default: undefined },
     autresPersonnes: [
       {
         prenom: { type: String, required: true },

@@ -6,6 +6,8 @@ import ContactInfo from '@/components/public/ContactInfo';
 import HomeInfoBar from '@/components/public/HomeInfoBar';
 import Link from 'next/link';
 import { Scissors, Droplets, Zap } from 'lucide-react';
+import { connectDB } from '@/lib/mongodb';
+import Gallery from '@/models/Gallery';
 
 const prestationsHome = [
   { icon: Scissors, titre: 'Coupes', desc: 'Coupes et contours, barbe. Shampoing et massage' },
@@ -13,7 +15,9 @@ const prestationsHome = [
   { icon: Zap,       titre: 'Barbe',  desc: 'Coupes et contours, barbe. Shampoing et massage' },
 ];
 
-const photos = [
+// Photos par défaut (Unsplash) : utilisées uniquement tant que l'admin n'a pas
+// encore ajouté de photos dans /admin/galerie.
+const FALLBACK_PHOTOS = [
   'https://images.unsplash.com/photo-1567894340315-735d7c361db0?w=400&q=80',
   'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=400&q=80',
   'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=400&q=80',
@@ -26,7 +30,23 @@ const photos = [
 
 const marques = ['Uncle Jimmy', 'OKAY MEN', 'Reuzel Professional'];
 
-export default function HomePage() {
+// Force le rendu dynamique : les photos peuvent changer à tout moment.
+// (sans ça, Next.js cache la page au build → la galerie ne s'actualise pas)
+export const revalidate = 60; // ISR : la home se régénère au max toutes les 60 s
+
+async function getPhotos(): Promise<string[]> {
+  try {
+    await connectDB();
+    const items = await Gallery.find().sort({ ordre: 1, createdAt: 1 }).select('url').lean();
+    if (items.length > 0) return items.map(i => i.url);
+  } catch (err) {
+    console.error('[home/getPhotos]', err);
+  }
+  return FALLBACK_PHOTOS;
+}
+
+export default async function HomePage() {
+  const photos = await getPhotos();
   return (
     <main>
       <Navbar dark />
@@ -85,7 +105,7 @@ export default function HomePage() {
       {/* ─── Photo Gallery ──────────────────────────────────────────────── */}
       <section className="py-0 overflow-hidden" style={{ backgroundColor: '#1A1A1A' }}>
         <div className="grid grid-cols-4 md:grid-cols-8 h-48 md:h-56">
-          {photos.map((src, i) => (
+          {photos.slice(0, 8).map((src, i) => (
             <div key={i} className="relative overflow-hidden group">
               <div className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
                 style={{ backgroundImage: `url(${src})` }} />

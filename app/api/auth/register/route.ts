@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
 import Reservation from '@/models/Reservation';
 import CommandeAchat from '@/models/CommandeAchat';
+import { validatePassword } from '@/lib/password';
+import { notifyEmailVerification } from '@/lib/notifications';
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,11 +18,9 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: 'Le mot de passe doit contenir au moins 6 caractères.' },
-        { status: 400 }
-      );
+    const pwdError = validatePassword(password);
+    if (pwdError) {
+      return NextResponse.json({ error: pwdError }, { status: 400 });
     }
 
     await connectDB();
@@ -33,7 +34,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ─── Création ─────────────────────────────────────────────────────────────
+    // ─── Création (compte en attente de validation email) ──────────────────────
+    const verifyToken  = crypto.randomBytes(32).toString('hex');
+    const verifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 heures
+
     const user = await User.create({
       prenom,
       nom,
@@ -41,7 +45,19 @@ export async function POST(req: NextRequest) {
       password,   // sera hashé par le hook pre-save
       telephone,
       role: 'client',
+      emailVerified: false,
+      verifyToken,
+      verifyTokenExpiry: verifyExpiry,
     });
+
+    // ─── Envoi de l'email de validation (bloquant : on veut savoir s'il part) ──
+    try {
+      await notifyEmailVerification({ prenom, email: user.email, token: verifyToken });
+    } catch (mailErr) {
+      console.error('[register] Échec envoi email de validation:', mailErr);
+      // Le compte est créé mais l'email n'est pas parti : on le signale pour que
+      // le client puisse demander un renvoi plutôt que de rester bloqué.
+    }
 
     // ─── Récupération des RDV/commandes invités passés sous le même email ────
     // Un client peut prendre un RDV sans compte, puis en créer un dans la
@@ -74,7 +90,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       {
-        message: 'Compte créé avec succès.',
+        message: 'Compte créé. Un email de validation vous a été envoyé.',
+        requiresVerification: true,
         user: {
           id:     user._id.toString(),
           prenom: user.prenom,

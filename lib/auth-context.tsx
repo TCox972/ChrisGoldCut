@@ -36,15 +36,18 @@ export function useAuth() {
       }
     : null;
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (
+    email: string,
+    password: string,
+  ): Promise<{ ok: boolean; error?: string }> => {
     const result = await signIn('credentials', {
       email,
       password,
       redirect: false,
     });
-    if (result?.ok) return true;
+    if (result?.ok) return { ok: true };
     console.error('[useAuth] login error:', result?.error);
-    return false;
+    return { ok: false, error: result?.error ?? undefined };
   };
 
   const logout = async () => {
@@ -67,9 +70,9 @@ export function useAuth() {
       const data = await res.json();
       if (!res.ok) return { ok: false, error: data.error ?? 'Erreur inconnue.' };
 
-      // Connexion automatique après inscription
-      const signed = await signIn('credentials', { email, password, redirect: false });
-      return signed?.ok ? { ok: true } : { ok: false, error: 'Connexion automatique échouée.' };
+      // Pas de connexion automatique : le compte doit d'abord être validé via
+      // le lien envoyé par email.
+      return { ok: true };
     } catch {
       return { ok: false, error: 'Erreur réseau.' };
     }

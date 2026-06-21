@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import CompteNav from '@/components/public/CompteNav';
 import { useAuth } from '@/lib/auth-context';
+import { validatePassword, PASSWORD_RULES_LABEL } from '@/lib/password';
 import { User, Users, Edit3, Save, Plus, Trash2, Loader2, Lock, Eye, EyeOff } from 'lucide-react';
 
 type UserData = {
@@ -87,8 +88,9 @@ export default function InformationsPage() {
       setPwdMsg({ type: 'err', text: 'Veuillez remplir tous les champs.' });
       return;
     }
-    if (newPwd.length < 6) {
-      setPwdMsg({ type: 'err', text: 'Le nouveau mot de passe doit contenir au moins 6 caractères.' });
+    const pwdError = validatePassword(newPwd);
+    if (pwdError) {
+      setPwdMsg({ type: 'err', text: pwdError });
       return;
     }
     if (newPwd !== confirmPwd) {
@@ -234,17 +236,18 @@ export default function InformationsPage() {
             <div className="relative">
               <label className="font-body text-xs font-semibold text-gray-700 block mb-1">Nouveau mot de passe</label>
               <input type={showNew ? 'text' : 'password'} value={newPwd}
-                onChange={e => setNewPwd(e.target.value)} minLength={6}
+                onChange={e => setNewPwd(e.target.value)} minLength={10}
                 className="block w-full border-b border-gray-300 pb-1 pr-8 font-body text-sm text-gray-900 outline-none focus:border-yellow-500" />
               <button type="button" onClick={() => setShowNew(!showNew)}
                 className="absolute right-0 bottom-1 text-gray-400 hover:text-gray-600">
                 {showNew ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
+              <p className="font-body text-[11px] text-gray-400 mt-1">{PASSWORD_RULES_LABEL}</p>
             </div>
             <div>
               <label className="font-body text-xs font-semibold text-gray-700 block mb-1">Confirmer le nouveau mot de passe</label>
               <input type="password" value={confirmPwd}
-                onChange={e => setConfirmPwd(e.target.value)} minLength={6}
+                onChange={e => setConfirmPwd(e.target.value)} minLength={10}
                 className="block w-full border-b border-gray-300 pb-1 font-body text-sm text-gray-900 outline-none focus:border-yellow-500" />
             </div>
 

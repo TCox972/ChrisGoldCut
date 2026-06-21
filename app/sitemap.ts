@@ -17,6 +17,7 @@ const staticRoutes: Route[] = [
   { url: `${SITE_URL}/contact`,      changeFrequency: 'yearly',  priority: 0.7 },
   { url: `${SITE_URL}/connexion`,    changeFrequency: 'yearly',  priority: 0.3 },
   { url: `${SITE_URL}/inscription`,  changeFrequency: 'yearly',  priority: 0.3 },
+  { url: `${SITE_URL}/confidentialite`, changeFrequency: 'yearly', priority: 0.2 },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

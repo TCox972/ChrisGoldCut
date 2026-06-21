@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { Calendar, Scissors, Package, Users, UserCog, CalendarOff, LogOut, TrendingUp, ExternalLink } from 'lucide-react';
+import { Calendar, Scissors, Package, Users, UserCog, CalendarOff, LogOut, TrendingUp, ExternalLink, Image as ImageIcon } from 'lucide-react';
 
 type NavItem = { href: string; label: string; icon: any; adminOnly?: boolean };
 
@@ -14,6 +14,7 @@ const navItems: NavItem[] = [
   { href: '/admin/fermetures',   label: 'Fermetures',   icon: CalendarOff, adminOnly: true },
   { href: '/admin/prestations',  label: 'Prestations',  icon: Scissors,    adminOnly: true },
   { href: '/admin/produits',     label: 'Produits',     icon: Package,     adminOnly: true },
+  { href: '/admin/galerie',      label: 'Galerie',      icon: ImageIcon,   adminOnly: true },
   { href: '/admin/clients',      label: 'Clients',      icon: Users,       adminOnly: true },
 ];
 

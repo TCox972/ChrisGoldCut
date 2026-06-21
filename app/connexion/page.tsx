@@ -9,9 +9,10 @@ import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
 
 const errorMessages: Record<string, string> = {
-  CredentialsSignin: 'Email ou mot de passe incorrect.',
-  AccessDenied:      'Accès refusé.',
-  Default:           'Une erreur est survenue. Réessayez.',
+  CredentialsSignin:   'Email ou mot de passe incorrect.',
+  EMAIL_NOT_VERIFIED:  'Votre compte n\'est pas encore validé. Consultez l\'email de validation envoyé lors de votre inscription.',
+  AccessDenied:        'Accès refusé.',
+  Default:             'Une erreur est survenue. Réessayez.',
 };
 
 export default function ConnexionPage() {
@@ -27,6 +28,8 @@ function ConnexionContent() {
   const [password, setPassword] = useState('');
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resendMsg, setResendMsg] = useState('');
 
   const { login } = useAuth();
   const searchParams = useSearchParams();
@@ -34,16 +37,38 @@ function ConnexionContent() {
   const urlError     = searchParams.get('error');
   const displayError = error || (urlError ? (errorMessages[urlError] ?? errorMessages.Default) : '');
 
+  const resendVerification = async () => {
+    setResendMsg('');
+    try {
+      const res = await fetch('/api/auth/resend-verification', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      setResendMsg(data.message ?? 'Email renvoyé.');
+    } catch {
+      setResendMsg('Erreur réseau. Réessayez.');
+    }
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setResendMsg('');
+    setNeedsVerification(false);
 
-    const ok = await login(email, password);
+    const res = await login(email, password);
 
-    if (!ok) {
+    if (!res.ok) {
       setLoading(false);
-      setError('Email ou mot de passe incorrect.');
+      if (res.error === 'EMAIL_NOT_VERIFIED') {
+        setNeedsVerification(true);
+        setError(errorMessages.EMAIL_NOT_VERIFIED);
+      } else {
+        setError('Email ou mot de passe incorrect.');
+      }
       return;
     }
 
@@ -98,6 +123,20 @@ function ConnexionContent() {
               {displayError && (
                 <p className="text-red-400 text-xs text-center font-body bg-red-900/20 rounded px-3 py-2">
                   {displayError}
+                </p>
+              )}
+
+              {needsVerification && (
+                <button type="button" onClick={resendVerification}
+                  className="text-xs text-center font-body underline"
+                  style={{ color: '#D4A017' }}>
+                  Renvoyer l'email de validation
+                </button>
+              )}
+
+              {resendMsg && (
+                <p className="text-green-400 text-xs text-center font-body bg-green-900/20 rounded px-3 py-2">
+                  {resendMsg}
                 </p>
               )}
 

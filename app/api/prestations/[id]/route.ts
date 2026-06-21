@@ -49,13 +49,24 @@ export async function PUT(req: NextRequest, { params }: Params) {
 }
 
 // ─── DELETE /api/prestations/[id] ─────────────────────────────────────────────
-// Soft delete : on met actif = false plutôt que de supprimer
-export async function DELETE(_req: NextRequest, { params }: Params) {
+//   • par défaut : suppression douce (actif = false) → réactivable
+//   • avec ?hard=true : suppression définitive en base (irréversible)
+export async function DELETE(req: NextRequest, { params }: Params) {
   const { error } = await requireAdmin();
   if (error) return error;
 
   try {
     await connectDB();
+    const hard = new URL(req.url).searchParams.get('hard') === 'true';
+
+    if (hard) {
+      const deleted = await Prestation.findByIdAndDelete(params.id);
+      if (!deleted) {
+        return NextResponse.json({ error: 'Prestation introuvable.' }, { status: 404 });
+      }
+      return NextResponse.json({ message: 'Prestation supprimée définitivement.' });
+    }
+
     const updated = await Prestation.findByIdAndUpdate(
       params.id,
       { actif: false },

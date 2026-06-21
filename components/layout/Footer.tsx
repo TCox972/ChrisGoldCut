@@ -1,9 +1,10 @@
 import Link from 'next/link';
 
 const footerLinks = [
-  { href: '/le-salon',    label: 'Le Salon' },
-  { href: '/contact',     label: 'Contact' },
-  { href: '/prestations', label: 'Tarifs' },
+  { href: '/le-salon',        label: 'Le Salon' },
+  { href: '/contact',         label: 'Contact' },
+  { href: '/prestations',     label: 'Tarifs' },
+  { href: '/confidentialite', label: 'Confidentialité' },
 ];
 
 export default function Footer() {
