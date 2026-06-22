@@ -239,7 +239,7 @@ export default function FinancesPage() {
         </div>
 
         {/* Sélecteur de mois + Export */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
         <button
           onClick={exportExcel}
           disabled={exporting || loading}
@@ -569,7 +569,7 @@ export default function FinancesPage() {
                   {formatEuros(allStats.totalSalon)}
                 </span>
               </div>
-              <table className="w-full">
+              <div className="overflow-x-auto"><table className="w-full min-w-[640px]">
                 <thead className="bg-gray-50">
                   <tr className="text-left font-body text-[10px] uppercase tracking-wider text-gray-500">
                     <th className="px-4 py-2">Coiffeur</th>
@@ -614,7 +614,7 @@ export default function FinancesPage() {
                     );
                   })}
                 </tbody>
-              </table>
+              </table></div>
             </div>
           )}
         </>

@@ -213,7 +213,7 @@ export default function AdminEmployesPage() {
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <h1 className="font-body text-2xl font-bold text-gray-900">Employés</h1>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -300,15 +300,15 @@ export default function AdminEmployesPage() {
       {/* Liste des employés */}
       <div className="grid gap-4">
         {employes.map(emp => (
-          <div key={emp._id} className="bg-white rounded-lg border border-gray-200 p-5 flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div key={emp._id} className="bg-white rounded-lg border border-gray-200 p-4 sm:p-5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
                 <span className="font-body text-sm font-bold text-gray-600">
                   {emp.prenom[0]}{emp.nom?.[0] ?? ''}
                 </span>
               </div>
-              <div>
-                <div className="flex items-center gap-2">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-body text-sm font-semibold text-gray-900">
                     {emp.prenom} {emp.nom}
                   </span>
@@ -320,9 +320,9 @@ export default function AdminEmployesPage() {
                     {emp.role === 'admin' ? 'Gérant' : 'Employé'}
                   </span>
                 </div>
-                <div className="flex items-center gap-4 mt-1">
-                  <span className="font-body text-xs text-gray-400 flex items-center gap-1">
-                    <Mail size={10} /> {emp.email}
+                <div className="flex items-center gap-x-4 gap-y-1 mt-1 flex-wrap">
+                  <span className="font-body text-xs text-gray-400 flex items-center gap-1 min-w-0">
+                    <Mail size={10} className="flex-shrink-0" /> <span className="truncate">{emp.email}</span>
                   </span>
                   {emp.telephone && (
                     <span className="font-body text-xs text-gray-400 flex items-center gap-1">

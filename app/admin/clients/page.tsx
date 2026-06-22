@@ -188,11 +188,11 @@ export default function AdminClientsPage() {
 
         <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
           {/* Infos personnelles */}
-          <div className="p-8 flex items-start gap-6">
+          <div className="p-5 sm:p-8 flex items-start gap-4 sm:gap-6">
             <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
               <User size={22} className="text-gray-400" />
             </div>
-            <div className="grid grid-cols-2 gap-x-16 gap-y-3">
+            <div className="grid grid-cols-2 gap-x-8 sm:gap-x-16 gap-y-3">
               {[
                 ['Prénom', c.prenom],
                 ['Nom', c.nom],
@@ -384,7 +384,8 @@ export default function AdminClientsPage() {
             </p>
           </div>
         ) : (
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b border-gray-100">
                 <th className="font-body text-xs font-semibold text-gray-500 text-left px-6 py-4">Client</th>
@@ -438,6 +439,7 @@ export default function AdminClientsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
 
         {/* Pagination */}

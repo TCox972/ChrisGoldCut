@@ -465,7 +465,7 @@ export default function AdminProduitsPage() {
                 <Loader2 size={18} className="animate-spin" /> Chargement...
               </div>
             ) : (
-              <table className="w-full">
+              <div className="overflow-x-auto"><table className="w-full min-w-[640px]">
                 <thead>
                   <tr className="border-b border-gray-50">
                     {['Image', 'Catégorie', 'Désignation', 'Infos', 'Prix', ''].map(h => (
@@ -502,7 +502,7 @@ export default function AdminProduitsPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             )}
             <div className="px-5 py-4 border-t border-gray-100">
               <button onClick={openAdd}
@@ -520,7 +520,7 @@ export default function AdminProduitsPage() {
               <Loader2 size={18} className="animate-spin" /> Chargement...
             </div>
           ) : (
-            <table className="w-full">
+            <div className="overflow-x-auto"><table className="w-full min-w-[640px]">
               <thead>
                 <tr className="border-b border-gray-50">
                   {['Image', 'Catégorie', 'Désignation', 'Infos', 'Prix', ''].map(h => (
@@ -560,7 +560,7 @@ export default function AdminProduitsPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           )
         )}
 
@@ -571,7 +571,7 @@ export default function AdminProduitsPage() {
               <Loader2 size={18} className="animate-spin" /> Chargement...
             </div>
           ) : (
-            <table className="w-full">
+            <div className="overflow-x-auto"><table className="w-full min-w-[640px]">
               <thead>
                 <tr className="border-b border-gray-50">
                   {['N°','Client','Produits','Total','Date','Statut',''].map(h => (
@@ -631,7 +631,7 @@ export default function AdminProduitsPage() {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           )
         )}
       </div>

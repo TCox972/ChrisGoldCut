@@ -394,7 +394,7 @@ export default function AdminPrestationsPage() {
         </div>
       ) : (
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <table className="w-full">
+          <div className="overflow-x-auto"><table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b border-gray-100">
                 {['Catégorie', 'Prestation', 'Durée', 'Prix', ''].map(h => (
@@ -565,7 +565,7 @@ export default function AdminPrestationsPage() {
                 </tr>
               )}
             </tbody>
-          </table>
+          </table></div>
 
           {/* Bouton ajouter (onglet Actives uniquement) */}
           {tab === 'actives' && (
