@@ -73,43 +73,67 @@ export async function GET(req: NextRequest) {
 
 // ─── POST /api/reservations ────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  const rl = rateLimit({ key: `reservation:${getClientIp(req)}`, limit: 10, windowMs: 10 * 60 * 1000 });
-  if (!rl.ok) {
-    return NextResponse.json(
-      { error: 'Trop de réservations en peu de temps. Réessayez plus tard.' },
-      { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } },
-    );
-  }
-
   try {
-    await connectDB();
     const session = await getSession();
+    const sessionRole = (session?.user as any)?.role;
+    const staffSession = sessionRole === 'admin' || sessionRole === 'employe';
+
+    // Anti-spam : limite par IP pour les réservations publiques uniquement.
+    // Le staff (qui enchaîne potentiellement plusieurs RDV en salon) en est exempté.
+    if (!staffSession) {
+      const rl = rateLimit({ key: `reservation:${getClientIp(req)}`, limit: 10, windowMs: 10 * 60 * 1000 });
+      if (!rl.ok) {
+        return NextResponse.json(
+          { error: 'Trop de réservations en peu de temps. Réessayez plus tard.' },
+          { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } },
+        );
+      }
+    }
+
+    await connectDB();
     const body    = await req.json();
 
     const {
-      clientNom, clientEmail, clientTel = '', pourQui = 'moi',
+      clientNom, clientEmail = '', clientTel = '', pourQui = 'moi',
       prestations, date, dureeMinutes, achats = [],
       employeId: requestedEmployeId,
+      clientUserId,            // staff : réserver pour un client inscrit
     } = body;
 
-    if (!clientNom || !clientEmail || !date || !prestations?.length) {
+    const sessionUser = session?.user as any;
+    const isStaff = !!sessionUser && (sessionUser.role === 'admin' || sessionUser.role === 'employe');
+
+    // Champs requis. L'email n'est obligatoire QUE pour une réservation publique :
+    // un client passager créé par le staff peut n'avoir qu'un téléphone.
+    if (!clientNom || !date || !prestations?.length || (!isStaff && !clientEmail)) {
       return NextResponse.json(
-        { error: 'clientNom, clientEmail, date et prestations sont requis.' },
+        {
+          error: isStaff
+            ? 'clientNom, date et prestations sont requis.'
+            : 'clientNom, clientEmail, date et prestations sont requis.',
+        },
         { status: 400 }
       );
     }
 
-    // Vérifier si le client est blacklisté + identifier le compte associé
-    // pour rattacher automatiquement la réservation s'il existe déjà sous cet
-    // email (cas d'un client qui réserve en invité mais a un compte non connecté).
-    const clientUser = await User.findOne({ email: clientEmail.toLowerCase() })
-      .select('_id blackliste')
-      .lean();
-    if (clientUser?.blackliste) {
-      return NextResponse.json(
-        { error: 'blackliste' },
-        { status: 403 },
-      );
+    // Identifier le compte client associé :
+    //  - staff + clientUserId → réservation pour ce client inscrit ;
+    //  - sinon → recherche par email (rattachement auto d'un invité ayant un compte).
+    let chosenClient: any = null;
+    if (isStaff && clientUserId) {
+      chosenClient = await User.findById(clientUserId).select('_id blackliste').lean();
+      if (!chosenClient) {
+        return NextResponse.json({ error: 'Client introuvable.' }, { status: 404 });
+      }
+    } else if (clientEmail) {
+      chosenClient = await User.findOne({ email: clientEmail.toLowerCase() })
+        .select('_id blackliste').lean();
+    }
+
+    // Blacklist : bloque la réservation publique d'un client blacklisté.
+    // Le staff peut outrepasser (cas géré en salon).
+    if (!isStaff && chosenClient?.blackliste) {
+      return NextResponse.json({ error: 'blackliste' }, { status: 403 });
     }
 
     const rdvDate = new Date(date);
@@ -169,8 +193,12 @@ export async function POST(req: NextRequest) {
     }
     if (!duree || duree < 30) duree = 30;
 
-    // Déterminer l'employé
+    // Déterminer l'employé.
+    // Un employé (non-admin) ne peut créer une réservation que pour lui-même.
     let assignedEmployeId: string | null = requestedEmployeId || null;
+    if (isStaff && sessionUser.role === 'employe') {
+      assignedEmployeId = sessionUser.id;
+    }
 
     if (assignedEmployeId) {
       // Vérifier la disponibilité de l'employé demandé
@@ -250,10 +278,18 @@ export async function POST(req: NextRequest) {
     // Génération d'un numéro unique 6 caractères (réservé dans UsedNumero)
     const numero = await generateUniqueNumero('reservation');
 
-    // userId : session > compte existant matché par email > null (invité pur)
-    const resolvedUserId = session?.user
-      ? (session.user as any).id
-      : (clientUser?._id ?? null);
+    // userId du client concerné par la réservation :
+    //  - staff : le client choisi (jamais le compte du staff) ;
+    //  - client connecté : lui-même ;
+    //  - invité : compte existant matché par email, sinon null (passager pur).
+    let resolvedUserId: any = null;
+    if (isStaff) {
+      resolvedUserId = clientUserId || chosenClient?._id || null;
+    } else if (session?.user) {
+      resolvedUserId = (session.user as any).id;
+    } else {
+      resolvedUserId = chosenClient?._id ?? null;
+    }
 
     let reservation;
     try {
@@ -283,17 +319,20 @@ export async function POST(req: NextRequest) {
       throw e;
     }
 
-    // Envoi de l'email de confirmation (non bloquant)
-    notifyBookingConfirmation({
-      numero: reservation.numero,
-      _id: reservation._id.toString(),
-      clientNom,
-      clientEmail,
-      clientTel,
-      prestations,
-      date: rdvDate,
-      pourQui,
-    });
+    // Envoi de l'email de confirmation (non bloquant) — seulement si on a un email
+    // (un client passager créé par le staff peut ne pas en avoir).
+    if (clientEmail) {
+      notifyBookingConfirmation({
+        numero: reservation.numero,
+        _id: reservation._id.toString(),
+        clientNom,
+        clientEmail,
+        clientTel,
+        prestations,
+        date: rdvDate,
+        pourQui,
+      });
+    }
 
     return NextResponse.json(reservation, { status: 201 });
   } catch (err) {

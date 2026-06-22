@@ -90,6 +90,53 @@ export async function notifyEmailVerification(opts: {
   });
 }
 
+// ─── 0 bis. Invitation à créer un compte (client passager) ───────────────────
+
+export async function notifyAccountInvite(opts: {
+  prenom: string;
+  email: string;
+  token: string;
+  /** true si l'invitation est liée à une prestation payée → 1er point fidélité offert */
+  withReward: boolean;
+}) {
+  const inviteUrl = `${BASE_URL}/inscription?invite=${opts.token}`;
+  const greeting = opts.prenom ? `Bonjour <strong>${opts.prenom}</strong>,` : 'Bonjour,';
+
+  await sendMail({
+    to: opts.email,
+    subject: 'Gold Cut — Créez votre compte',
+    html: emailLayout(`
+      <h2 style="font-size: 18px; color: #111; margin-bottom: 8px;">Créez votre compte Gold Cut</h2>
+      <p style="font-size: 14px; color: #555; line-height: 1.6;">
+        ${greeting}
+      </p>
+      <p style="font-size: 14px; color: #555; line-height: 1.6;">
+        Votre coiffeur vous invite à créer votre compte Gold Cut pour gérer vos
+        rendez-vous, suivre votre fidélité et réserver en ligne.
+      </p>
+      ${opts.withReward ? `
+      <div style="background: #fff8e6; border: 1px solid #e8cf86; border-radius: 8px; padding: 14px; margin: 18px 0;">
+        <p style="font-size: 13px; color: #8a6d1a; margin: 0; line-height: 1.5;">
+          🎁 En créant votre compte maintenant, votre prestation du jour est déjà
+          comptabilisée : vous démarrez avec <strong>votre premier point de fidélité</strong> !
+        </p>
+      </div>` : ''}
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="${inviteUrl}"
+          style="display: inline-block; background: #D4A017; color: #111; font-weight: bold;
+            font-size: 14px; letter-spacing: 1px; text-decoration: none;
+            padding: 14px 32px; border-radius: 6px;">
+          Créer mon compte
+        </a>
+      </div>
+      <p style="font-size: 12px; color: #999; line-height: 1.6;">
+        Ce lien est valable <strong>7 jours</strong>. Si vous ne souhaitez pas créer de compte,
+        ignorez simplement cet e-mail.
+      </p>
+    `),
+  });
+}
+
 // ─── 1. Confirmation de réservation ──────────────────────────────────────────
 
 export async function notifyBookingConfirmation(rdv: RdvInfo) {

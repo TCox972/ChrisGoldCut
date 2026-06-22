@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
 import Reservation from '@/models/Reservation';
-import { requireAdmin } from '@/lib/auth';
+import { requireStaff } from '@/lib/auth';
 
 // ─── GET /api/clients ─────────────────────────────────────────────────────────
-// Admin uniquement — liste paginée des clients avec stats enrichies.
+// Staff (admin + employé) — liste paginée des clients avec stats enrichies.
+// (Les employés en ont besoin pour créer un RDV au nom d'un client inscrit.)
 // Query :
 //   ?q=<recherche>  (nom, prénom, email ou téléphone)
 //   ?page=N         (défaut: 1)
@@ -17,7 +18,7 @@ const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
 
 export async function GET(req: NextRequest) {
-  const { error } = await requireAdmin();
+  const { error } = await requireStaff();
   if (error) return error;
 
   try {

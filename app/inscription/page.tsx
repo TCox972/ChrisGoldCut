@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/lib/auth-context';
@@ -8,11 +9,44 @@ import { validatePassword } from '@/lib/password';
 import Link from 'next/link';
 
 export default function InscriptionPage() {
+  return (
+    <Suspense>
+      <InscriptionContent />
+    </Suspense>
+  );
+}
+
+function InscriptionContent() {
+  const searchParams = useSearchParams();
+  const inviteToken  = searchParams.get('invite') || '';
+
   const [form, setForm] = useState({ prenom: '', nom: '', email: '', telephone: '', password: '', confirm: '' });
-  const [error,     setError]     = useState('');
-  const [loading,   setLoading]   = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [error,        setError]        = useState('');
+  const [loading,      setLoading]      = useState(false);
+  const [submitted,    setSubmitted]    = useState(false);
+  const [requiresVerif,setRequiresVerif]= useState(true);
+  const [emailLocked,  setEmailLocked]  = useState(false);
   const { register } = useAuth();
+
+  // Préremplissage depuis une invitation (lien envoyé par le salon).
+  useEffect(() => {
+    if (!inviteToken) return;
+    fetch(`/api/account-invites/${inviteToken}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (d?.email) {
+          setForm(f => ({
+            ...f,
+            prenom:    d.prenom || '',
+            nom:       d.nom || '',
+            email:     d.email,
+            telephone: d.telephone || '',
+          }));
+          setEmailLocked(true);
+        }
+      })
+      .catch(() => {});
+  }, [inviteToken]);
 
   const handle = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
@@ -44,10 +78,12 @@ export default function InscriptionPage() {
     const result = await register(form.prenom, form.email, form.password, {
       nom: form.nom,
       telephone: form.telephone,
+      inviteToken: inviteToken || undefined,
     });
     setLoading(false);
 
     if (result.ok) {
+      setRequiresVerif(result.requiresVerification !== false);
       setSubmitted(true);
     } else {
       setError(result.error ?? 'Une erreur est survenue.');
@@ -71,16 +107,25 @@ export default function InscriptionPage() {
             {submitted ? (
               <div className="text-center">
                 <h1 className="font-display text-xl tracking-[0.25em] uppercase text-white mb-6 font-bold">
-                  Vérifiez vos emails
+                  {requiresVerif ? 'Vérifiez vos emails' : 'Compte créé !'}
                 </h1>
-                <p className="font-body text-sm text-white/70 leading-relaxed mb-2">
-                  Un email de validation a été envoyé à{' '}
-                  <strong className="text-white">{form.email}</strong>.
-                </p>
-                <p className="font-body text-sm text-white/70 leading-relaxed mb-6">
-                  Cliquez sur le lien qu'il contient pour activer votre compte,
-                  puis connectez-vous. Pensez à vérifier vos spams.
-                </p>
+                {requiresVerif ? (
+                  <>
+                    <p className="font-body text-sm text-white/70 leading-relaxed mb-2">
+                      Un email de validation a été envoyé à{' '}
+                      <strong className="text-white">{form.email}</strong>.
+                    </p>
+                    <p className="font-body text-sm text-white/70 leading-relaxed mb-6">
+                      Cliquez sur le lien qu'il contient pour activer votre compte,
+                      puis connectez-vous. Pensez à vérifier vos spams.
+                    </p>
+                  </>
+                ) : (
+                  <p className="font-body text-sm text-white/70 leading-relaxed mb-6">
+                    Votre compte est actif. Vous pouvez dès maintenant vous connecter
+                    pour gérer vos rendez-vous et votre fidélité.
+                  </p>
+                )}
                 <Link href="/connexion" className="btn-gold inline-block px-8">
                   Aller à la connexion
                 </Link>
@@ -101,7 +146,8 @@ export default function InscriptionPage() {
                   style={{ backgroundColor: 'rgba(255,255,255,0.05)' }} />
               </div>
               <input name="email" type="email" value={form.email} onChange={handle}
-                placeholder="Email *" required className="input-gold text-white"
+                placeholder="Email *" required readOnly={emailLocked}
+                className={`input-gold text-white ${emailLocked ? 'opacity-70 cursor-not-allowed' : ''}`}
                 style={{ backgroundColor: 'rgba(255,255,255,0.05)' }} />
               <input name="telephone" type="tel" value={form.telephone} onChange={handle}
                 placeholder="Téléphone (+596 696 ...)" className="input-gold text-white"

@@ -4,6 +4,7 @@ import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
 import Reservation from '@/models/Reservation';
 import CommandeAchat from '@/models/CommandeAchat';
+import AccountInvite from '@/models/AccountInvite';
 import { validatePassword } from '@/lib/password';
 import { notifyEmailVerification } from '@/lib/notifications';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { prenom, nom = '', email, password, telephone = '' } = await req.json();
+    const { prenom, nom = '', email, password, telephone = '', inviteToken } = await req.json();
 
     // ─── Validation ───────────────────────────────────────────────────────────
     if (!prenom || !email || !password) {
@@ -43,7 +44,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ─── Création (compte en attente de validation email) ──────────────────────
+    // ─── Invitation éventuelle (lien envoyé par le staff à un passager) ────────
+    // Si un inviteToken valide correspond À CET email, le compte est créé
+    // directement vérifié (le lien a été envoyé à cette adresse) et, si l'invite
+    // est liée à une réservation payée, celle-ci est rattachée → 1er point fidélité.
+    let invite: any = null;
+    if (typeof inviteToken === 'string' && inviteToken) {
+      const found = await AccountInvite.findOne({ token: inviteToken }).lean();
+      if (
+        found && !found.used &&
+        new Date(found.expiresAt) >= new Date() &&
+        found.email === email.toLowerCase()
+      ) {
+        invite = found;
+      }
+    }
+    const viaInvite = !!invite;
+
+    // ─── Création du compte ────────────────────────────────────────────────────
     const verifyToken  = crypto.randomBytes(32).toString('hex');
     const verifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 heures
 
@@ -54,18 +72,30 @@ export async function POST(req: NextRequest) {
       password,   // sera hashé par le hook pre-save
       telephone,
       role: 'client',
-      emailVerified: false,
-      verifyToken,
-      verifyTokenExpiry: verifyExpiry,
+      // Via invitation → email déjà prouvé (le lien y a été envoyé) : compte direct.
+      emailVerified:     viaInvite ? true : false,
+      verifyToken:       viaInvite ? undefined : verifyToken,
+      verifyTokenExpiry: viaInvite ? undefined : verifyExpiry,
     });
 
-    // ─── Envoi de l'email de validation (bloquant : on veut savoir s'il part) ──
-    try {
-      await notifyEmailVerification({ prenom, email: user.email, token: verifyToken });
-    } catch (mailErr) {
-      console.error('[register] Échec envoi email de validation:', mailErr);
-      // Le compte est créé mais l'email n'est pas parti : on le signale pour que
-      // le client puisse demander un renvoi plutôt que de rester bloqué.
+    if (viaInvite) {
+      // Consommer l'invitation et rattacher la réservation (1er point fidélité).
+      await AccountInvite.updateOne({ _id: invite._id }, { $set: { used: true } });
+      if (invite.reservationId) {
+        await Reservation.updateOne(
+          { _id: invite.reservationId },
+          { $set: { userId: user._id } },
+        );
+      }
+    } else {
+      // ─── Envoi de l'email de validation (bloquant : on veut savoir s'il part) ──
+      try {
+        await notifyEmailVerification({ prenom, email: user.email, token: verifyToken });
+      } catch (mailErr) {
+        console.error('[register] Échec envoi email de validation:', mailErr);
+        // Le compte est créé mais l'email n'est pas parti : on le signale pour que
+        // le client puisse demander un renvoi plutôt que de rester bloqué.
+      }
     }
 
     // ─── Récupération des RDV/commandes invités passés sous le même email ────
@@ -99,8 +129,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       {
-        message: 'Compte créé. Un email de validation vous a été envoyé.',
-        requiresVerification: true,
+        message: viaInvite
+          ? 'Compte créé. Vous pouvez maintenant vous connecter.'
+          : 'Compte créé. Un email de validation vous a été envoyé.',
+        requiresVerification: !viaInvite,
         user: {
           id:     user._id.toString(),
           prenom: user.prenom,

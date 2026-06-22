@@ -66,7 +66,8 @@ const ReservationSchema = new Schema<IReservation>(
     userId:      { type: Schema.Types.ObjectId, ref: 'User', default: null },
     employeId:   { type: Schema.Types.ObjectId, ref: 'User', default: null },
     clientNom:   { type: String, required: true },
-    clientEmail: { type: String, required: true },
+    // Optionnel : un client passager créé par le staff peut n'avoir qu'un téléphone.
+    clientEmail: { type: String, default: '' },
     clientTel:   { type: String, default: '' },
     pourQui:     { type: String, default: 'moi' },
     prestations:  [{ type: String }],

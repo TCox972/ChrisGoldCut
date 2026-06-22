@@ -5,10 +5,11 @@ import {
   ChevronLeft, ChevronRight, Loader2, Lock, Unlock,
   Trash2, X, Clock, AlertTriangle, Eye, CalendarDays,
   CalendarRange, CheckSquare, Square, ChevronDown, Check, Package,
-  Edit3, Plus, Gift, UserX,
+  Edit3, Plus, Gift, UserX, Mail,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import ConfirmModal from '@/components/admin/ConfirmModal';
+import NewReservationModal from '@/components/admin/NewReservationModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -125,6 +126,14 @@ export default function AdminReservationsPage() {
   const { user } = useAuth();
   const isAdmin = user?.isAdmin ?? false;
 
+  // Création d'un nouveau RDV (staff)
+  const [showNewRdv, setShowNewRdv] = useState(false);
+
+  // Invitation à créer un compte (proposée après paiement à un passager)
+  const [inviteEmail,   setInviteEmail]   = useState('');
+  const [inviteSending, setInviteSending] = useState(false);
+  const [inviteDone,    setInviteDone]    = useState(false);
+
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [calMonth, setCalMonth] = useState(() => {
     const now = new Date();
@@ -185,6 +194,8 @@ export default function AdminReservationsPage() {
   useEffect(() => {
     setEditingPrestations(false);
     setDraftPrestations([]);
+    setInviteEmail('');
+    setInviteDone(false);
   }, [detailRdv?._id]);
 
   // ─── Chargement des commandes du client à l'ouverture de la modale ─────────
@@ -544,6 +555,41 @@ export default function AdminReservationsPage() {
       }
     } catch {
       setActionError('Erreur réseau. Vérifiez votre connexion.');
+    }
+  };
+
+  // ─── Proposer la création de compte à un passager (après paiement) ────────
+  // Envoie un lien lié à CETTE réservation validée → 1er point fidélité à
+  // l'inscription (la réservation sera rattachée au nouveau compte).
+  const proposerCompte = async () => {
+    if (!detailRdv) return;
+    const email = (detailRdv.clientEmail || inviteEmail).trim();
+    if (!email) {
+      setActionError('Renseignez un email pour envoyer le lien de création de compte.');
+      return;
+    }
+    setInviteSending(true);
+    try {
+      const res = await fetch('/api/account-invites', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          email,
+          prenom:        detailRdv.clientNom,
+          telephone:     detailRdv.clientTel,
+          reservationId: detailRdv._id,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok) {
+        setInviteDone(true);
+      } else {
+        setActionError(data?.error || 'Impossible d\'envoyer l\'invitation.');
+      }
+    } catch {
+      setActionError('Erreur réseau. Vérifiez votre connexion.');
+    } finally {
+      setInviteSending(false);
     }
   };
 
@@ -1341,6 +1387,45 @@ export default function AdminReservationsPage() {
 
           {/* Actions */}
           <div className="px-6 py-4 border-t border-gray-100 space-y-2">
+            {/* Proposer la création de compte (passager sans compte, après paiement) */}
+            {rdv.prestationValidee && !(rdv as any).userId && (
+              <div className="rounded-lg border border-yellow-200 bg-yellow-50/60 p-3 space-y-2">
+                {inviteDone ? (
+                  <p className="font-body text-xs text-green-700 flex items-center gap-1.5">
+                    <Check size={13} /> Lien de création de compte envoyé.
+                  </p>
+                ) : (
+                  <>
+                    <p className="font-body text-xs font-semibold text-yellow-800 flex items-center gap-1.5">
+                      <Gift size={13} /> Proposer la création de compte
+                    </p>
+                    <p className="font-body text-[11px] text-yellow-700 leading-snug">
+                      Le client recevra un lien par email. En créant son compte, il démarre avec
+                      son <strong>premier point de fidélité</strong> (cette prestation lui sera rattachée).
+                    </p>
+                    {!rdv.clientEmail && (
+                      <input
+                        type="email"
+                        value={inviteEmail}
+                        onChange={e => setInviteEmail(e.target.value)}
+                        placeholder="Email du client"
+                        className="w-full border border-yellow-300 rounded px-2 py-1.5 text-sm font-body outline-none focus:border-yellow-500"
+                      />
+                    )}
+                    <button
+                      onClick={proposerCompte}
+                      disabled={inviteSending}
+                      className="w-full flex items-center justify-center gap-2 font-body text-sm font-semibold
+                        bg-yellow-400 text-gray-900 rounded px-3 py-2 hover:bg-yellow-500 transition-colors disabled:opacity-50"
+                    >
+                      {inviteSending ? <Loader2 size={13} className="animate-spin" /> : <Mail size={13} />}
+                      Envoyer le lien
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
             {/* Valider la prestation : action principale */}
             {/* Statut absent */}
             {rdv.statut === 'absent' && (
@@ -1605,6 +1690,15 @@ export default function AdminReservationsPage() {
         <h1 className="font-body text-2xl font-bold text-gray-900">Réservations</h1>
 
         <div className="flex items-center gap-3">
+          {/* Nouveau RDV (staff) */}
+          <button
+            onClick={() => setShowNewRdv(true)}
+            className="font-body text-xs font-semibold bg-yellow-400 text-gray-900 px-4 py-2 rounded-lg
+              hover:bg-yellow-500 transition-colors flex items-center gap-1.5"
+          >
+            <Plus size={14} /> Nouveau RDV
+          </button>
+
           {/* Filtre par employé (admin uniquement) */}
           {isAdmin && staff.length > 0 && (
             <div className="relative">
@@ -1677,6 +1771,18 @@ export default function AdminReservationsPage() {
 
       {/* Modal détails */}
       {renderDetailModal()}
+
+      {/* Modal création de RDV (staff) */}
+      <NewReservationModal
+        open={showNewRdv}
+        onClose={() => setShowNewRdv(false)}
+        onCreated={() => fetchMonth(calMonth.year, calMonth.month)}
+        isAdmin={isAdmin}
+        currentUserId={user?.id ?? ''}
+        staff={staff}
+        prestations={allPrestations}
+        defaultDate={selectedDate}
+      />
     </div>
   );
 }

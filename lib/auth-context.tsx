@@ -59,8 +59,8 @@ export function useAuth() {
     prenom: string,
     email: string,
     password: string,
-    extras: { nom?: string; telephone?: string } = {},
-  ): Promise<{ ok: boolean; error?: string }> => {
+    extras: { nom?: string; telephone?: string; inviteToken?: string } = {},
+  ): Promise<{ ok: boolean; error?: string; requiresVerification?: boolean }> => {
     try {
       const res = await fetch('/api/auth/register', {
         method:  'POST',
@@ -70,9 +70,9 @@ export function useAuth() {
       const data = await res.json();
       if (!res.ok) return { ok: false, error: data.error ?? 'Erreur inconnue.' };
 
-      // Pas de connexion automatique : le compte doit d'abord être validé via
-      // le lien envoyé par email.
-      return { ok: true };
+      // Pas de connexion automatique : selon le cas, le compte doit être validé
+      // par email (requiresVerification: true) ou est déjà actif (via invitation).
+      return { ok: true, requiresVerification: data.requiresVerification !== false };
     } catch {
       return { ok: false, error: 'Erreur réseau.' };
     }
