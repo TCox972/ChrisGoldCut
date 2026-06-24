@@ -31,8 +31,8 @@ export default function ContactInfo() {
             <div className="flex flex-col md:flex-row items-center md:items-center gap-3">
               <Phone size={22} className="text-yellow-400 flex-shrink-0" />
               <div>
-                <a href="tel:+596696102030" className="text-white/90 text-lg md:text-sm font-semibold md:font-normal hover:text-yellow-300 transition-colors">
-                  +596 (0)696 10 20 30
+                <a href="tel:+596696865771" className="text-white/90 text-lg md:text-sm font-semibold md:font-normal hover:text-yellow-300 transition-colors">
+                  +596 696 865771
                 </a>
                 <p className="text-white/50 text-sm md:text-xs">Ligne directe</p>
               </div>
@@ -52,7 +52,7 @@ export default function ContactInfo() {
               <a href="https://www.instagram.com/gold_cut777?igsh=MWdmbDF0YWpiNWxibw==" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="hover:opacity-70">
                 <Icon icon="cib:instagram" width="32" height="32" className="md:!w-6 md:!h-6" />
               </a>
-              <a href="https://wa.me/+596696102030" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="hover:opacity-70">
+              <a href="https://wa.me/+596696865771" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="hover:opacity-70">
                 <Icon icon="cib:whatsapp" width="32" height="32" className="md:!w-6 md:!h-6" />
               </a>
             </div>

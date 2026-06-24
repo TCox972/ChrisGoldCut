@@ -31,8 +31,10 @@ type StaffMember = { _id: string; prenom: string; nom: string };
 
 type FormState = {
   prenom:        string;
+  nom:           string;
   email:         string;
-  telephone:     string;
+  indicatif:     string; // ex: "+596"
+  telephone:     string; // reste du numéro (sans indicatif)
   date:          string; // YYYY-MM-DD
   heure:         string; // HH:MM
   prestationIds: string[]; // 1 à 3 prestations
@@ -47,6 +49,36 @@ const MAX_PRESTATIONS = 3;
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
 const MOIS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+
+// ─── Indicatifs téléphoniques ──────────────────────────────────────────────────
+const INDICATIFS = [
+  { code: '+596',  label: 'Martinique' },
+  { code: '+590',  label: 'Guadeloupe' },
+  { code: '+594',  label: 'Guyane' },
+  { code: '+33',   label: 'France' },
+  { code: '+262',  label: 'Réunion' },
+  { code: '+1758', label: 'Sainte-Lucie' },
+  { code: '+1767', label: 'Dominique' },
+  { code: '+32',   label: 'Belgique' },
+  { code: '+34',   label: 'Espagne' },
+  { code: '+1',    label: 'États-Unis' },
+  { code: '+1809', label: 'Saint-Domingue' },
+];
+
+const DEFAULT_INDICATIF = '+596';
+
+/** Découpe un numéro complet (ex. "+596696102030") en indicatif + reste. */
+function splitPhone(full: string): { indicatif: string; reste: string } {
+  const cleaned = (full || '').replace(/\s/g, '').trim();
+  // On teste les codes les plus longs d'abord (+1809 avant +1).
+  const codes = INDICATIFS.map(i => i.code).sort((a, b) => b.length - a.length);
+  for (const code of codes) {
+    if (cleaned.startsWith(code)) {
+      return { indicatif: code, reste: cleaned.slice(code.length) };
+    }
+  }
+  return { indicatif: DEFAULT_INDICATIF, reste: cleaned };
+}
 
 // ─── Helpers date ─────────────────────────────────────────────────────────────
 
@@ -93,7 +125,7 @@ export default function ReservationForm() {
 
   // ── Formulaire ───────────────────────────────────────────────────────────
   const [form,   setForm]   = useState<FormState>({
-    prenom: '', email: '', telephone: '',
+    prenom: '', nom: '', email: '', indicatif: DEFAULT_INDICATIF, telephone: '',
     date: '', heure: '', prestationIds: [], employeId: '', pourQui: 'moi',
     autrePrenom: '', autreNom: '',
   });
@@ -126,11 +158,14 @@ export default function ReservationForm() {
       })
       .then((data: UserProfile) => {
         setProfile(data);
+        const { indicatif, reste } = splitPhone(data.telephone || '');
         setForm(f => ({
           ...f,
-          prenom:    data.prenom    || f.prenom,
-          email:     data.email     || f.email,
-          telephone: data.telephone || f.telephone,
+          prenom:    data.prenom || f.prenom,
+          nom:       data.nom    || f.nom,
+          email:     data.email  || f.email,
+          indicatif: data.telephone ? indicatif : f.indicatif,
+          telephone: data.telephone ? reste : f.telephone,
         }));
       })
       .catch(() => {});
@@ -194,6 +229,18 @@ export default function ReservationForm() {
     e.preventDefault();
     setErrMsg('');
 
+    // Garde-fou : nom et téléphone obligatoires
+    if (!form.nom.trim()) {
+      setErrMsg('Veuillez indiquer votre nom.');
+      setStatus('error');
+      return;
+    }
+    if (!form.telephone.trim()) {
+      setErrMsg('Veuillez indiquer votre numéro de téléphone.');
+      setStatus('error');
+      return;
+    }
+
     // Garde-fou : "Pour qui = Autre personne" exige au moins un prénom
     if (form.pourQui === 'nouveau' && !form.autrePrenom.trim()) {
       setErrMsg('Veuillez indiquer le prénom de la personne pour qui vous réservez.');
@@ -221,9 +268,9 @@ export default function ReservationForm() {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          clientNom:    form.prenom,
+          clientNom:    `${form.prenom} ${form.nom}`.trim(),
           clientEmail:  form.email,
-          clientTel:    form.telephone,
+          clientTel:    `${form.indicatif} ${form.telephone.trim()}`.trim(),
           pourQui:      resolvePourQui(),
           prestations:  prestationsSelectionnees.map(p => p.nom),
           dureeMinutes: dureeMinutes,
@@ -523,6 +570,15 @@ export default function ReservationForm() {
                     />
                   </div>
                   <div>
+                    <label className="text-yellow-400/70 text-xs font-body mb-1.5 block">Nom *</label>
+                    <input
+                      name="nom" value={form.nom} onChange={handle} required
+                      placeholder="Nom"
+                      className="input-gold text-white w-full"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
                     <label className="text-yellow-400/70 text-xs font-body mb-1.5 block">Email *</label>
                     <input
                       name="email" type="email" value={form.email} onChange={handle} required
@@ -532,13 +588,30 @@ export default function ReservationForm() {
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="text-yellow-400/70 text-xs font-body mb-1.5 block">Téléphone</label>
-                    <input
-                      name="telephone" value={form.telephone} onChange={handle}
-                      placeholder="+596 696 ..."
-                      className="input-gold text-white w-full"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
-                    />
+                    <label className="text-yellow-400/70 text-xs font-body mb-1.5 block">Téléphone *</label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-shrink-0">
+                        <select
+                          name="indicatif" value={form.indicatif} onChange={handle}
+                          className="input-gold text-white appearance-none pr-7 pl-3 w-[120px]"
+                          style={{ backgroundColor: 'rgba(30,25,15,0.9)' }}
+                          aria-label="Indicatif téléphonique"
+                        >
+                          {INDICATIFS.map(i => (
+                            <option key={i.code + i.label} value={i.code}>
+                              {i.label} ({i.code})
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-yellow-400/60 pointer-events-none" />
+                      </div>
+                      <input
+                        name="telephone" type="tel" value={form.telephone} onChange={handle} required
+                        placeholder="696 10 20 30"
+                        className="input-gold text-white flex-1 min-w-0"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+                      />
+                    </div>
                   </div>
                 </div>
 

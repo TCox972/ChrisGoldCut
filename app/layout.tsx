@@ -111,7 +111,7 @@ const hairSalonJsonLd = {
     'Salon de coiffure mixte à Ducos (Martinique). Nous accueillons hommes et femmes : coupes, dégradés, ' +
     'soins barbe et entretien des cheveux. Réservation de rendez-vous en ligne.',
   url: SITE_URL,
-  telephone: '+596696102030',
+  telephone: '+596696865771',
   email: 'info@goldcut.com',
   image: `${SITE_URL}/og-image.jpg`,
   logo: `${SITE_URL}/og-image.jpg`,

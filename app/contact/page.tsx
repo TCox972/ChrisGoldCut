@@ -69,8 +69,8 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <p className="font-display text-xs tracking-[0.15em] uppercase text-gray-900 font-bold mb-1">Téléphone</p>
-                  <a href="tel:+596696102030" className="font-body text-sm text-gray-600 hover:text-yellow-600 transition-colors">
-                    +596 (0)696 10 20 30
+                  <a href="tel:+596696865771" className="font-body text-sm text-gray-600 hover:text-yellow-600 transition-colors">
+                    +596 696 865771
                   </a>
                 </div>
               </div>
@@ -96,7 +96,7 @@ export default function ContactPage() {
                   style={{ backgroundColor: 'rgba(212,160,23,0.1)', color: '#D4A017' }}>
                   <Icon icon="cib:instagram" width="20" height="20" />
                 </a>
-                <a href="https://wa.me/+596696301020" target="_blank" rel="noopener noreferrer"
+                <a href="https://wa.me/+596696865771" target="_blank" rel="noopener noreferrer"
                   className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
                   style={{ backgroundColor: 'rgba(212,160,23,0.1)', color: '#D4A017' }}>
                   <Icon icon="cib:whatsapp" width="20" height="20" />

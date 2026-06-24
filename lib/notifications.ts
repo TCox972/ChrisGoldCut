@@ -35,7 +35,7 @@ function emailLayout(content: string): string {
       <p style="font-size: 11px; color: #bbb; text-align: center;">
         Gold Cut — Salon de Coiffure Premium<br />
         Impasse de la Sablière, 97224 DUCOS<br />
-        +596 (0)696 10 20 30
+        +596 696 865771
       </p>
     </div>
   `;
