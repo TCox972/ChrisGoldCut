@@ -4,6 +4,7 @@ import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
 import { sendMail } from '@/lib/mail';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { getBaseUrl } from '@/lib/site-url';
 
 // ─── POST /api/auth/forgot-password ─────────────────────────────────────────
 // Génère un token de réinitialisation et envoie un e-mail au client.
@@ -47,8 +48,7 @@ export async function POST(req: NextRequest) {
     );
 
     // Construire le lien de réinitialisation
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const resetUrl = `${baseUrl}/reset-password/${token}`;
+    const resetUrl = `${getBaseUrl()}/reset-password/${token}`;
 
     // Envoyer l'e-mail
     await sendMail({

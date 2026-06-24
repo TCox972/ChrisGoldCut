@@ -1,11 +1,12 @@
 import { sendMail } from '@/lib/mail';
 import { sendWhatsAppTemplate } from '@/lib/sms';
+import { getBaseUrl } from '@/lib/site-url';
 
 // Nom du template WhatsApp approuvé pour la confirmation de RDV.
 // Configurable via env pour ne pas avoir à redéployer si le template change.
 const WA_CONFIRM_TEMPLATE = process.env.WHATSAPP_CONFIRM_TEMPLATE || 'confirmation_rdv';
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const BASE_URL = getBaseUrl();
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
