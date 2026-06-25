@@ -36,15 +36,17 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
-    // Vérifier si c'est un dimanche (bornes en UTC pour rester TZ-indépendant)
+    // Jours de fermeture hebdomadaire : dimanche (0) et lundi (1).
+    // (bornes en UTC pour rester TZ-indépendant)
     const dayStart = dayStartUTC(dateStr);
-    if (dayStart.getUTCDay() === 0) {
+    const weekday = dayStart.getUTCDay();
+    if (weekday === 0 || weekday === 1) {
       const allSlots = generateAllSlots();
       return NextResponse.json({
         slots: allSlots.map(heure => ({ heure, disponible: false })),
         dureeMinutes: 30,
         closed: true,
-        closedMotif: 'Fermé le dimanche',
+        closedMotif: weekday === 0 ? 'Fermé le dimanche' : 'Fermé le lundi',
       });
     }
 

@@ -68,7 +68,7 @@ export default function ConfidentialitePage() {
               <a href="mailto:info@goldcut.com" className="underline" style={{ color: '#D4A017' }}>
                 info@goldcut.com
               </a>{' '}
-              ou par téléphone au +596 696 865771.
+              ou par téléphone au +596 696 02 84 00.
             </p>
           </div>
 

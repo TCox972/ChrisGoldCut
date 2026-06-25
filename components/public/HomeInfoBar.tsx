@@ -6,15 +6,15 @@ import { Phone, MapPin, Clock, X } from 'lucide-react';
 import { horaires } from '@/lib/data';
 
 // ─── Constantes salon ────────────────────────────────────────────────────────
-const PHONE_HUMAN = '+596 696 865771';
-const PHONE_HREF  = 'tel:+596696865771';
-const ADDRESS     = 'Impasse de la Sablière — 97224 DUCOS';
+const PHONE_HUMAN = '+596 696 02 84 00';
+const PHONE_HREF  = 'tel:+596696028400';
+const ADDRESS     = '2 Impasse de la Sablière — 97224 DUCOS';
 const MAPS_URL    = 'https://www.google.com/maps/search/?api=1&query=' +
-  encodeURIComponent('Gold Cut, Impasse de la Sablière, 97224 Ducos, Martinique');
-const HOURS_SUM   = 'Du lundi au samedi — De 9h à 18h';
+  encodeURIComponent('Gold Cut, 2 Impasse de la Sablière, 97224 Ducos, Martinique');
+const HOURS_SUM   = 'Du mardi au samedi — De 9h à 19h';
 
 const INSTAGRAM_URL = 'https://www.instagram.com/gold_cut777?igsh=MWdmbDF0YWpiNWxibw==';
-const WHATSAPP_URL  = 'https://wa.me/+596696865771';
+const WHATSAPP_URL  = 'https://wa.me/+596696028400';
 
 export default function HomeInfoBar() {
   const [hoursOpen, setHoursOpen] = useState(false);

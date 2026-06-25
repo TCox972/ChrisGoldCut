@@ -111,7 +111,7 @@ const hairSalonJsonLd = {
     'Salon de coiffure mixte à Ducos (Martinique). Nous accueillons hommes et femmes : coupes, dégradés, ' +
     'soins barbe et entretien des cheveux. Réservation de rendez-vous en ligne.',
   url: SITE_URL,
-  telephone: '+596696865771',
+  telephone: '+596696028400',
   email: 'info@goldcut.com',
   image: `${SITE_URL}/og-image.jpg`,
   logo: `${SITE_URL}/og-image.jpg`,
@@ -120,7 +120,7 @@ const hairSalonJsonLd = {
   paymentAccepted: 'Espèces, Carte bancaire',
   address: {
     '@type': 'PostalAddress',
-    streetAddress: 'Impasse de la Sablière, Bourg',
+    streetAddress: '2 Impasse de la Sablière',
     postalCode: '97224',
     addressLocality: 'Ducos',
     addressRegion: 'Martinique',
@@ -142,9 +142,9 @@ const hairSalonJsonLd = {
   openingHoursSpecification: [
     {
       '@type': 'OpeningHoursSpecification',
-      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+      dayOfWeek: ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
       opens: '09:00',
-      closes: '18:00',
+      closes: '19:00',
     },
   ],
   sameAs: [

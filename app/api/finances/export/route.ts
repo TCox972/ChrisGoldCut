@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
 
     ws.mergeCells('A2:F2');
     const subtitleCell = ws.getCell('A2');
-    subtitleCell.value = 'Salon de Coiffure Premium — Impasse de la Sablière, 97224 DUCOS';
+    subtitleCell.value = 'Salon de Coiffure Premium — 2 Impasse de la Sablière, 97224 DUCOS';
     subtitleCell.font = { name: 'Calibri', size: 10, color: { argb: 'FF888888' } };
     subtitleCell.alignment = { horizontal: 'center' };
 

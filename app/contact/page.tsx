@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description:
     "Contactez Gold Cut, votre salon de coiffure à Ducos (97224, Martinique). " +
     "Adresse, téléphone, horaires d'ouverture, Instagram et WhatsApp. " +
-    "Christopher vous accueille du lundi au samedi.",
+    "Christopher vous accueille du mardi au samedi.",
   alternates: { canonical: '/contact' },
   openGraph: {
     title: 'Contact — Gold Cut, Coiffeur Ducos Martinique',
@@ -55,7 +55,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <p className="font-display text-xs tracking-[0.15em] uppercase text-gray-900 font-bold mb-1">Adresse</p>
-                  <p className="font-body text-sm text-gray-600">Impasse de la Sablière</p>
+                  <p className="font-body text-sm text-gray-600">2 Impasse de la Sablière</p>
                   <p className="font-body text-sm text-gray-600">Bourg</p>
                   <p className="font-body text-sm text-gray-600">97224 DUCOS</p>
                 </div>
@@ -69,8 +69,8 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <p className="font-display text-xs tracking-[0.15em] uppercase text-gray-900 font-bold mb-1">Téléphone</p>
-                  <a href="tel:+596696865771" className="font-body text-sm text-gray-600 hover:text-yellow-600 transition-colors">
-                    +596 696 865771
+                  <a href="tel:+596696028400" className="font-body text-sm text-gray-600 hover:text-yellow-600 transition-colors">
+                    +596 696 02 84 00
                   </a>
                 </div>
               </div>
@@ -96,7 +96,7 @@ export default function ContactPage() {
                   style={{ backgroundColor: 'rgba(212,160,23,0.1)', color: '#D4A017' }}>
                   <Icon icon="cib:instagram" width="20" height="20" />
                 </a>
-                <a href="https://wa.me/+596696865771" target="_blank" rel="noopener noreferrer"
+                <a href="https://wa.me/+596696028400" target="_blank" rel="noopener noreferrer"
                   className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
                   style={{ backgroundColor: 'rgba(212,160,23,0.1)', color: '#D4A017' }}>
                   <Icon icon="cib:whatsapp" width="20" height="20" />
@@ -144,7 +144,7 @@ export default function ContactPage() {
         <div className="w-full h-full flex items-center justify-center">
           <div className="text-center">
             <MapPin size={40} className="text-yellow-400 mx-auto mb-3" />
-            <p className="text-white/70 text-sm font-body">Impasse de la Sablière</p>
+            <p className="text-white/70 text-sm font-body">2 Impasse de la Sablière</p>
             <p className="text-white/70 text-sm font-body">97224 DUCOS, Martinique</p>
           </div>
         </div>

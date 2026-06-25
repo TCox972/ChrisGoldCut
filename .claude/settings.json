@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(perl -0pi -e 's/Impasse de la Sablière/2 Impasse de la Sablière/g;' app/contact/page.tsx components/public/ContactInfo.tsx components/public/HomeInfoBar.tsx lib/notifications.ts app/api/finances/export/route.ts app/layout.tsx)",
+      "Bash(perl -0pi -e \"s/'2 Impasse de la Sablière, Bourg'/'2 Impasse de la Sablière'/g;\" app/layout.tsx)",
+      "Bash(perl -0pi -e \"s/Du lundi au samedi — De 9h à 18h/Du mardi au samedi — De 9h à 19h/g;\" components/public/HomeInfoBar.tsx)",
+      "Bash(perl -0pi -e \"s/Christopher vous accueille du lundi au samedi\\\\./Christopher vous accueille du mardi au samedi./g;\" app/contact/page.tsx)",
+      "Bash(perl -0pi -e \"s/dayOfWeek: \\\\['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'\\\\]/dayOfWeek: ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']/g; s/closes: '18:00'/closes: '19:00'/g;\" app/layout.tsx)"
+    ]
+  }
+}

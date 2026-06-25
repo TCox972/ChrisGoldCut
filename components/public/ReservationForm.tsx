@@ -324,9 +324,10 @@ export default function ReservationForm() {
     for (let d = 1; d <= daysCount; d++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       const dateObj = new Date(year, month, d);
-      const isSunday = dateObj.getDay() === 0;
+      // Salon fermé le dimanche (0) et le lundi (1)
+      const isClosedDay = dateObj.getDay() === 0 || dateObj.getDay() === 1;
       const isPast  = dateStr < today;
-      const isDisabled = isPast || isSunday;
+      const isDisabled = isPast || isClosedDay;
       const isSelected = form.date === dateStr;
 
       cells.push(

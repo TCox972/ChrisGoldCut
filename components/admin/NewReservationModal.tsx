@@ -11,7 +11,7 @@ const MAX_PRESTATIONS = 3;
 
 const ALL_SLOTS = (() => {
   const s: string[] = [];
-  for (let m = 9 * 60; m < 18 * 60; m += 30) {
+  for (let m = 9 * 60; m < 19 * 60; m += 30) {
     s.push(`${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`);
   }
   return s;

@@ -70,7 +70,7 @@ const JOURS_LONG  = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'
 
 const ALL_SLOTS = (() => {
   const s: string[] = [];
-  for (let m = 9 * 60; m < 18 * 60; m += 30) {
+  for (let m = 9 * 60; m < 19 * 60; m += 30) {
     const h = Math.floor(m / 60);
     const min = m % 60;
     s.push(`${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`);

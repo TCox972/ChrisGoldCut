@@ -107,11 +107,11 @@ export const reservations: Reservation[] = [
 ];
 
 export const horaires = [
-  { jour: 'Lun.',  horaire: '9 : 00 - 18 : 00' },
-  { jour: 'Mar.',  horaire: '9 : 00 - 18 : 00' },
-  { jour: 'Mer.',  horaire: '9 : 00 - 18 : 00' },
-  { jour: 'Jeu.',  horaire: '9 : 00 - 18 : 00' },
-  { jour: 'Ven.',  horaire: '9 : 00 - 18 : 00' },
-  { jour: 'Sam.',  horaire: '9 : 00 - 18 : 00' },
+  { jour: 'Lun.',  horaire: 'Fermé' },
+  { jour: 'Mar.',  horaire: '9 : 00 - 19 : 00' },
+  { jour: 'Mer.',  horaire: '9 : 00 - 19 : 00' },
+  { jour: 'Jeu.',  horaire: '9 : 00 - 19 : 00' },
+  { jour: 'Ven.',  horaire: '9 : 00 - 19 : 00' },
+  { jour: 'Sam.',  horaire: '9 : 00 - 19 : 00' },
   { jour: 'Dim.',  horaire: 'Fermé' },
 ];

@@ -29,7 +29,7 @@ const FALLBACK_PHOTOS = [
   'https://images.unsplash.com/photo-1567894340315-735d7c361db0?w=600&q=80', // client dans le fauteuil
 ];
 
-const marques = ['Uncle Jimmy', 'OKAY MEN', 'Reuzel Professional'];
+const marques = ['Uncle Jimmy', 'OKAY MEN'];
 
 // Force le rendu dynamique : les photos peuvent changer à tout moment.
 // (sans ça, Next.js cache la page au build → la galerie ne s'actualise pas)
@@ -62,7 +62,6 @@ export default async function HomePage() {
 
         <div className="relative z-10 text-center flex flex-col items-center gap-6 px-6">
           <div className="animate-fade-up">
-            <p className="font-display text-xl md:text-2xl tracking-[0.4em] uppercase text-yellow-400">CHRISTOPHER</p>
             <h1 className="font-display text-5xl md:text-7xl font-black tracking-[0.15em] uppercase text-white leading-none">
               GOLD CUT
               <span className="sr-only"> — Salon de coiffure mixte à Ducos, Martinique</span>

@@ -34,8 +34,8 @@ function emailLayout(content: string): string {
       <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
       <p style="font-size: 11px; color: #bbb; text-align: center;">
         Gold Cut — Salon de Coiffure Premium<br />
-        Impasse de la Sablière, 97224 DUCOS<br />
-        +596 696 865771
+        2 Impasse de la Sablière, 97224 DUCOS<br />
+        +596 696 02 84 00
       </p>
     </div>
   `;
@@ -224,7 +224,7 @@ export async function notifyReminder24h(rdv: RdvInfo) {
         </a>
       </div>
       <p style="font-size: 12px; color: #999; line-height: 1.6;">
-        Adresse : Impasse de la Sablière, 97224 DUCOS
+        Adresse : 2 Impasse de la Sablière, 97224 DUCOS
       </p>
     `),
   }).catch(err => console.error('[notifyReminder24h] email error:', err));
