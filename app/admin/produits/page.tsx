@@ -234,14 +234,19 @@ export default function AdminProduitsPage() {
   type PendingAction =
     | { type: 'deleteProduit'; id: string; nom: string }
     | { type: 'hardDeleteProduit'; id: string; nom: string }
+    | { type: 'deleteCategorie'; nom: string }
     | { type: 'cancelCommande'; id: string; numero: string };
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+
+  const catItemsCount = (cat: string) => produits.filter(p => p.categorie === cat).length;
 
   const askDeleteProduit = (p: Produit) =>
     setPendingAction({ type: 'deleteProduit', id: p._id, nom: p.nom });
   const askHardDeleteProduit = (p: Produit) =>
     setPendingAction({ type: 'hardDeleteProduit', id: p._id, nom: p.nom });
+  const askDeleteCategorie = (nom: string) =>
+    setPendingAction({ type: 'deleteCategorie', nom });
   const askCancelCommande = (c: CommandeAdmin) =>
     setPendingAction({ type: 'cancelCommande', id: c._id, numero: c.numero });
 
@@ -289,6 +294,17 @@ export default function AdminProduitsPage() {
           const data = await res.json().catch(() => null);
           setActionError(data?.error || 'Impossible de supprimer ce produit. Réessayez.');
         }
+      } else if (pendingAction.type === 'deleteCategorie') {
+        const cat = pendingAction.nom;
+        const res = await fetch(`/api/category-order?type=produits&nom=${encodeURIComponent(cat)}`, { method: 'DELETE' });
+        if (res.ok) {
+          setProduits(prev => prev.filter(p => p.categorie !== cat));
+          setCatOrder(prev => prev.filter(c => c !== cat));
+          setPendingAction(null);
+        } else {
+          const data = await res.json().catch(() => null);
+          setActionError(data?.error || 'Impossible de supprimer cette catégorie. Réessayez.');
+        }
       } else if (pendingAction.type === 'cancelCommande') {
         const res = await fetch(`/api/commandes/${pendingAction.id}`, {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -313,21 +329,29 @@ export default function AdminProduitsPage() {
     ? 'Désactiver ce produit ?'
     : pendingAction?.type === 'hardDeleteProduit'
       ? 'Supprimer définitivement ?'
-      : pendingAction?.type === 'cancelCommande'
-        ? 'Annuler cette commande ?'
-        : '';
+      : pendingAction?.type === 'deleteCategorie'
+        ? 'Supprimer cette catégorie ?'
+        : pendingAction?.type === 'cancelCommande'
+          ? 'Annuler cette commande ?'
+          : '';
   const pendingMessage = pendingAction?.type === 'deleteProduit'
     ? `Le produit "${pendingAction.nom}" ne sera plus visible côté client. Il peut être réactivé plus tard.`
     : pendingAction?.type === 'hardDeleteProduit'
       ? `Le produit "${pendingAction.nom}" sera supprimé définitivement et ne pourra pas être récupéré. Les commandes passées ne sont pas affectées.`
-      : pendingAction?.type === 'cancelCommande'
-        ? `La commande ${pendingAction.numero} sera marquée comme annulée. Cette action est irréversible côté client.`
-        : '';
+      : pendingAction?.type === 'deleteCategorie'
+        ? (catItemsCount(pendingAction.nom) > 0
+            ? `La catégorie « ${pendingAction.nom} » et ses ${catItemsCount(pendingAction.nom)} article(s) seront supprimés définitivement. Cette action est irréversible.`
+            : `La catégorie « ${pendingAction.nom} » (vide) sera supprimée de l'ordre d'affichage.`)
+        : pendingAction?.type === 'cancelCommande'
+          ? `La commande ${pendingAction.numero} sera marquée comme annulée. Cette action est irréversible côté client.`
+          : '';
   const pendingConfirmLabel = pendingAction?.type === 'deleteProduit'
     ? 'Désactiver'
     : pendingAction?.type === 'hardDeleteProduit'
       ? 'Supprimer définitivement'
-      : 'Annuler la commande';
+      : pendingAction?.type === 'deleteCategorie'
+        ? 'Supprimer la catégorie'
+        : 'Annuler la commande';
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -422,11 +446,17 @@ export default function AdminProduitsPage() {
             {orderedCategories.map((cat, i) => (
               <div key={cat} className="flex items-center gap-3 bg-gray-50 rounded px-3 py-2">
                 <GripVertical size={14} className="text-gray-300" />
-                <span className="font-body text-sm text-gray-900 flex-1">{cat}</span>
+                <span className="font-body text-sm text-gray-900 flex-1">
+                  {cat}
+                  <span className="text-gray-400 font-normal ml-2">({catItemsCount(cat)})</span>
+                </span>
                 <button onClick={() => moveCategory(i, -1)} disabled={i === 0}
                   className="text-gray-400 hover:text-gray-700 disabled:opacity-20"><ChevronUp size={16} /></button>
                 <button onClick={() => moveCategory(i, 1)} disabled={i === orderedCategories.length - 1}
                   className="text-gray-400 hover:text-gray-700 disabled:opacity-20"><ChevronDown size={16} /></button>
+                <button onClick={() => askDeleteCategorie(cat)} title="Supprimer la catégorie"
+                  aria-label="Supprimer la catégorie"
+                  className="text-gray-300 hover:text-red-500 transition-colors ml-1"><Trash2 size={15} /></button>
               </div>
             ))}
           </div>

@@ -5,7 +5,8 @@
       "Bash(perl -0pi -e \"s/'2 Impasse de la Sablière, Bourg'/'2 Impasse de la Sablière'/g;\" app/layout.tsx)",
       "Bash(perl -0pi -e \"s/Du lundi au samedi — De 9h à 18h/Du mardi au samedi — De 9h à 19h/g;\" components/public/HomeInfoBar.tsx)",
       "Bash(perl -0pi -e \"s/Christopher vous accueille du lundi au samedi\\\\./Christopher vous accueille du mardi au samedi./g;\" app/contact/page.tsx)",
-      "Bash(perl -0pi -e \"s/dayOfWeek: \\\\['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'\\\\]/dayOfWeek: ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']/g; s/closes: '18:00'/closes: '19:00'/g;\" app/layout.tsx)"
+      "Bash(perl -0pi -e \"s/dayOfWeek: \\\\['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'\\\\]/dayOfWeek: ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']/g; s/closes: '18:00'/closes: '19:00'/g;\" app/layout.tsx)",
+      "Bash(perl -CSD -0pi -e \"s/\\\\.normalize\\\\\\('NFD'\\\\\\)\\\\.replace\\\\\\(\\\\/\\\\[[^\\\\]]*\\\\]\\\\/g, ''\\\\\\)/.normalize\\('NFD'\\).replace\\(\\\\/[\\\\\\\\\\\\\\\\u0300-\\\\\\\\\\\\\\\\u036f]\\\\/g, ''\\)/\" components/ui/CategorySelect.tsx)"
     ]
   }
 }

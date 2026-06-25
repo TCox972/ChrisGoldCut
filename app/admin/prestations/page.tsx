@@ -247,6 +247,32 @@ export default function AdminPrestationsPage() {
     }
   };
 
+  // ─── Suppression d'une catégorie (+ ses prestations) ──────────────────────
+  const [pendingCatDelete, setPendingCatDelete] = useState<string | null>(null);
+  const [catDeleting, setCatDeleting] = useState(false);
+  const catItemsCount = (cat: string) => items.filter(i => i.categorie === cat).length;
+
+  const supprimerCategorie = async () => {
+    if (!pendingCatDelete) return;
+    const cat = pendingCatDelete;
+    setCatDeleting(true);
+    try {
+      const res = await fetch(`/api/category-order?type=prestations&nom=${encodeURIComponent(cat)}`, { method: 'DELETE' });
+      if (res.ok) {
+        setItems(prev => prev.filter(p => p.categorie !== cat));
+        setCatOrder(prev => prev.filter(c => c !== cat));
+        setPendingCatDelete(null);
+      } else {
+        const data = await res.json().catch(() => null);
+        setActionError(data?.error || 'Impossible de supprimer cette catégorie. Réessayez.');
+      }
+    } catch {
+      setActionError('Erreur réseau. Vérifiez votre connexion.');
+    } finally {
+      setCatDeleting(false);
+    }
+  };
+
   // ─── Render ─────────────────────────────────────────────────────────────────
   return (
     <div>
@@ -276,6 +302,22 @@ export default function AdminPrestationsPage() {
         loading={actionLoading}
         onConfirm={supprimerDefinitif}
         onCancel={() => setPendingHardDelete(null)}
+      />
+
+      {/* Modale de confirmation suppression de catégorie */}
+      <ConfirmModal
+        open={!!pendingCatDelete}
+        title="Supprimer cette catégorie ?"
+        message={pendingCatDelete
+          ? (catItemsCount(pendingCatDelete) > 0
+              ? `La catégorie « ${pendingCatDelete} » et ses ${catItemsCount(pendingCatDelete)} prestation(s) seront supprimées définitivement. Cette action est irréversible.`
+              : `La catégorie « ${pendingCatDelete} » (vide) sera supprimée de l'ordre d'affichage.`)
+          : ''}
+        confirmLabel="Supprimer la catégorie"
+        variant="danger"
+        loading={catDeleting}
+        onConfirm={supprimerCategorie}
+        onCancel={() => setPendingCatDelete(null)}
       />
 
       {/* Toast d'erreur (auto-disparition) */}
@@ -350,7 +392,12 @@ export default function AdminPrestationsPage() {
             {orderedCategories.map((cat, i) => (
               <div key={cat} className="flex items-center gap-3 bg-gray-50 rounded px-3 py-2">
                 <GripVertical size={14} className="text-gray-300" />
-                <span className="font-body text-sm text-gray-900 flex-1">{cat}</span>
+                <span className="font-body text-sm text-gray-900 flex-1">
+                  {cat}
+                  <span className="text-gray-400 font-normal ml-2">
+                    ({catItemsCount(cat)})
+                  </span>
+                </span>
                 <button
                   onClick={() => moveCategory(i, -1)}
                   disabled={i === 0}
@@ -364,6 +411,14 @@ export default function AdminPrestationsPage() {
                   className="text-gray-400 hover:text-gray-700 disabled:opacity-20 transition-colors"
                 >
                   <ChevronDown size={16} />
+                </button>
+                <button
+                  onClick={() => setPendingCatDelete(cat)}
+                  title="Supprimer la catégorie"
+                  aria-label="Supprimer la catégorie"
+                  className="text-gray-300 hover:text-red-500 transition-colors ml-1"
+                >
+                  <Trash2 size={15} />
                 </button>
               </div>
             ))}
