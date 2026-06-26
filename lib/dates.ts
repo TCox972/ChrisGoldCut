@@ -38,3 +38,25 @@ export function toSlotUTC(d: Date): string {
 export function buildDateUTC(dateStr: string, heure: string): Date {
   return new Date(`${dateStr}T${heure}:00.000Z`);
 }
+
+// ─── Fuseau du salon (Martinique, UTC-4, sans heure d'été) ────────────────────
+// Les créneaux sont stockés en "heure murale" (composantes UTC). Pour comparer à
+// "maintenant", il faut raisonner dans le même référentiel mural Martinique.
+const SALON_OFFSET_MS = 4 * 60 * 60 * 1000;
+
+/**
+ * "Maintenant" exprimé en heure murale du salon (composantes UTC = heure Martinique).
+ * Ex : à 23:00 en Martinique, salonNow().getUTCHours() === 23 et la date est la
+ * bonne journée locale — alors que `new Date()` serait déjà au lendemain en UTC.
+ */
+export function salonNow(): Date {
+  return new Date(Date.now() - SALON_OFFSET_MS);
+}
+
+/**
+ * Une date de créneau stockée (heure murale en composantes UTC) est-elle déjà passée ?
+ * On reconstitue son instant réel (+4 h) et on le compare à l'instant réel courant.
+ */
+export function isSlotPast(stored: Date): boolean {
+  return stored.getTime() + SALON_OFFSET_MS <= Date.now();
+}

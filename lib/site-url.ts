@@ -18,3 +18,12 @@ export function getBaseUrl(): string {
   // Retire un éventuel slash final pour éviter les doubles slashes ("//verifier-email").
   return raw.replace(/\/+$/, '');
 }
+
+/**
+ * Transforme une URL http(s) en URL `webcal://`.
+ * Les liens `webcal://` sont remis par le navigateur/OS à l'application calendrier
+ * par défaut (Apple Calendar, Outlook…) au lieu de télécharger le fichier .ics.
+ */
+export function toWebcal(httpUrl: string): string {
+  return httpUrl.replace(/^https?:\/\//i, 'webcal://');
+}

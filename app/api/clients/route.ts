@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
       const nbReservations = validated.length;
 
       // Fidélité
-      const palier = 6;
+      const palier = 5;
       const cycleCount = nbReservations % palier;
       const reservationsUntilReward = palier - cycleCount;
 

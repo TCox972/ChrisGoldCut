@@ -34,15 +34,23 @@ function htmlToText(html: string): string {
     .trim();
 }
 
+type MailAttachment = {
+  filename: string;
+  content: string;
+  contentType?: string;
+};
+
 type SendMailOptions = {
   to: string;
   subject: string;
   html: string;
   /** Texte brut optionnel ; généré automatiquement depuis le HTML si absent. */
   text?: string;
+  /** Pièces jointes (ex. fichier .ics d'ajout au calendrier). */
+  attachments?: MailAttachment[];
 };
 
-export async function sendMail({ to, subject, html, text }: SendMailOptions) {
+export async function sendMail({ to, subject, html, text, attachments }: SendMailOptions) {
   return transporter.sendMail({
     from: `"${FROM_NAME}" <${FROM_ADDRESS}>`,
     replyTo: REPLY_TO,
@@ -52,5 +60,6 @@ export async function sendMail({ to, subject, html, text }: SendMailOptions) {
     // multipart/alternative : un email avec une version texte est mieux noté
     // par les filtres anti-spam qu'un email HTML seul.
     text: text || htmlToText(html),
+    attachments,
   });
 }

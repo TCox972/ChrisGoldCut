@@ -34,7 +34,7 @@ type FidelitePersonne = {
   cycleCount:              number;
   reservationsUntilReward: number;
   palier:                  number;
-  rewardEur:               number;
+  rewardPercent:           number;
 };
 type Fidelite = FidelitePersonne;
 
@@ -1128,7 +1128,7 @@ export default function AdminReservationsPage() {
 
             {/* Fidélité client */}
             {detailFidelite && (() => {
-              const { cycleCount, reservationsUntilReward, palier, rewardEur, totalValidees } = detailFidelite;
+              const { cycleCount, reservationsUntilReward, palier, rewardPercent, totalValidees } = detailFidelite;
               const rewardReady = cycleCount === 0 && totalValidees > 0;
               const hasPrimeOnThisRdv = (rdv.fideliteReductionEur ?? 0) > 0;
               return (
@@ -1160,11 +1160,11 @@ export default function AdminReservationsPage() {
 
                   <p className="font-body text-[11px] text-yellow-800">
                     {hasPrimeOnThisRdv ? (
-                      <>Prime <strong>−{rdv.fideliteReductionEur} €</strong> appliquée sur ce RDV</>
+                      <>Remise fidélité <strong>−{rdv.fideliteReductionEur} €</strong> appliquée sur ce RDV</>
                     ) : rewardReady ? (
-                      <>Prime de <strong>{rewardEur} €</strong> disponible sur le prochain RDV validé</>
+                      <>Remise de <strong>{rewardPercent} %</strong> disponible sur le prochain RDV validé</>
                     ) : (
-                      <>Encore {reservationsUntilReward} RDV avant {rewardEur} € offerts</>
+                      <>Encore {reservationsUntilReward} RDV avant {rewardPercent} % de remise</>
                     )}
                   </p>
                 </div>
@@ -1489,11 +1489,13 @@ export default function AdminReservationsPage() {
         }));
         const brut = lignes.reduce((s, l) => s + l.prix, 0);
         const fidelite = rdv.fideliteReductionEur ?? 0;
-        // Vérifier si une prime fidélité sera appliquée au moment de la validation
+        // Vérifier si la remise fidélité sera appliquée au moment de la validation
+        // (cette validation correspond au palier → remise de rewardPercent %).
         const willGetPrime = detailFidelite
           ? detailFidelite.reservationsUntilReward === 1
           : false;
-        const primeAmount = willGetPrime ? 10 : fidelite;
+        const rewardPct = detailFidelite?.rewardPercent ?? 5;
+        const primeAmount = willGetPrime ? Math.round(brut * rewardPct) / 100 : fidelite;
         const total = Math.max(0, brut - primeAmount);
 
         return (

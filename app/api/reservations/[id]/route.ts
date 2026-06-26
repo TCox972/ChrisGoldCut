@@ -7,7 +7,7 @@ import Prestation from '@/models/Prestation';
 import { requireAuth } from '@/lib/auth';
 import { dateToSlot, generateAllSlots, getOccupiedSlots, isSlotAvailable, parseDuree } from '@/lib/slots';
 import { notifyCancellation, notifyDelay } from '@/lib/notifications';
-import { dayStartUTC, dayEndUTC, toDateStrUTC } from '@/lib/dates';
+import { dayStartUTC, dayEndUTC, toDateStrUTC, isSlotPast } from '@/lib/dates';
 
 type Params = { params: { id: string } };
 
@@ -71,8 +71,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           return NextResponse.json({ error: 'Créneau invalide.' }, { status: 400 });
         }
 
-        // Refuser si dans le passé
-        if (newDate.getTime() < Date.now()) {
+        // Refuser si dans le passé (référentiel heure murale Martinique)
+        if (isSlotPast(newDate)) {
           return NextResponse.json({ error: 'Impossible de choisir un créneau passé.' }, { status: 400 });
         }
 
@@ -163,10 +163,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
         // ── Fidélité par bénéficiaire (pourQui) : on compte les
         // prestations validées pour la même personne (même userId +
-        // même pourQui). La 6ème (12ème, etc.) déclenche la prime.
+        // même pourQui). La 5ème (10ème, etc.) déclenche la remise de 5%
+        // sur le montant des prestations de CE rendez-vous.
         if (!wasValidee && rdv.userId) {
-          const PALIER = 6;
-          const REWARD_EUR = 10;
+          const PALIER = 5;
+          const REWARD_PERCENT = 5;
           const otherCount = await Reservation.countDocuments({
             _id:               { $ne: rdv._id },
             userId:            rdv.userId,
@@ -174,8 +175,16 @@ export async function PATCH(req: NextRequest, { params }: Params) {
             prestationValidee: true,
           });
           if ((otherCount + 1) % PALIER === 0) {
-            rdv.fideliteReductionEur = REWARD_EUR;
-            nativeSet.fideliteReductionEur = REWARD_EUR;
+            // Montant brut des prestations de ce RDV, puis 5% arrondi au centime.
+            const prestaDocs = await Prestation.find({ nom: { $in: rdv.prestations } })
+              .select('nom prix').lean();
+            const priceByNom = new Map(prestaDocs.map(p => [p.nom, p.prix]));
+            const brut = (rdv.prestations ?? []).reduce(
+              (s: number, nom: string) => s + (priceByNom.get(nom) ?? 0), 0,
+            );
+            const reduction = Math.round(brut * REWARD_PERCENT) / 100;
+            rdv.fideliteReductionEur = reduction;
+            nativeSet.fideliteReductionEur = reduction;
           }
         }
       } else {

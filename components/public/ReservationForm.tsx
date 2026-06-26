@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import SectionTitle from '../ui/SectionTitle';
-import { Loader2, Calendar, User, Users, UserPlus, Scissors, ChevronDown, ChevronLeft, ChevronRight, X, Plus } from 'lucide-react';
+import { Loader2, Calendar, CalendarPlus, User, Users, UserPlus, Scissors, ChevronDown, ChevronLeft, ChevronRight, X, Plus } from 'lucide-react';
+import { buildGoogleCalUrl, type IcsRdv } from '@/lib/ics';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -132,6 +133,20 @@ export default function ReservationForm() {
   const [status,        setStatus]        = useState<Status>('idle');
   const [errMsg,        setErrMsg]        = useState('');
   const [createdNumero, setCreatedNumero] = useState<string>('');
+  const [createdId,     setCreatedId]     = useState<string>('');
+  const [createdRdv,    setCreatedRdv]    = useState<IcsRdv | null>(null);
+
+  // Recentre la vue sur l'encart de confirmation une fois la réservation validée.
+  const successRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (status === 'success') {
+      // léger délai pour laisser l'encart se monter avant le scroll
+      const t = setTimeout(() => {
+        successRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
+      return () => clearTimeout(t);
+    }
+  }, [status]);
 
   // ─── 1. Chargement des prestations + staff ─────────────────────────────────
   useEffect(() => {
@@ -292,7 +307,40 @@ export default function ReservationForm() {
         setStatus('error');
       } else {
         setCreatedNumero(data.numero ?? '');
+        setCreatedId(data._id ?? '');
+        setCreatedRdv({
+          numero:       data.numero ?? '',
+          date:         data.date ?? `${form.date}T${form.heure}:00.000Z`,
+          dureeMinutes: data.dureeMinutes ?? dureeMinutes,
+          prestations:  prestationsSelectionnees.map(p => p.nom),
+          manageUrl:    `${window.location.origin}/mes-rdv/${data._id}`,
+        });
         setStatus('success');
+
+        // Auto-ajout de la nouvelle personne au compte (client connecté).
+        // Si on a réservé pour une "Autre personne" pas encore enregistrée,
+        // on l'ajoute à autresPersonnes pour qu'elle suive sa propre fidélité.
+        if (isConnected && form.pourQui === 'nouveau' && form.autrePrenom.trim()) {
+          const nouvelle = { prenom: form.autrePrenom.trim(), nom: form.autreNom.trim() };
+          const existantes = profile?.autresPersonnes ?? [];
+          const dejaPresente = existantes.some(
+            p => p.prenom.trim().toLowerCase() === nouvelle.prenom.toLowerCase()
+              && (p.nom || '').trim().toLowerCase() === nouvelle.nom.toLowerCase(),
+          );
+          if (!dejaPresente && existantes.length < 3) {
+            const updated = [...existantes, nouvelle];
+            fetch('/api/me', {
+              method:  'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body:    JSON.stringify({ autresPersonnes: updated }),
+            })
+              .then(r => (r.ok ? r.json() : null))
+              .then(saved => {
+                if (saved) setProfile(p => p ? { ...p, autresPersonnes: saved.autresPersonnes ?? updated } : p);
+              })
+              .catch(() => { /* non bloquant : la réservation est déjà créée */ });
+          }
+        }
       }
     } catch {
       setErrMsg('Erreur réseau. Vérifiez votre connexion.');
@@ -304,6 +352,8 @@ export default function ReservationForm() {
     setStatus('idle');
     setErrMsg('');
     setCreatedNumero('');
+    setCreatedId('');
+    setCreatedRdv(null);
     setForm(f => ({ ...f, date: '', heure: '', prestationIds: [], employeId: '', pourQui: 'moi', autrePrenom: '', autreNom: '' }));
   };
 
@@ -431,7 +481,8 @@ export default function ReservationForm() {
         <div className="max-w-4xl mx-auto">
           <SectionTitle className="mb-10">Prendre RDV</SectionTitle>
           <div
-            className="rounded overflow-hidden"
+            ref={successRef}
+            className="rounded overflow-hidden scroll-mt-28"
             style={{ border: '1px solid rgba(212,160,23,0.5)' }}
           >
             <div className="bg-gray-900 p-12 flex flex-col items-center text-center gap-5">
@@ -457,6 +508,33 @@ export default function ReservationForm() {
                 Nous vous confirmerons votre rendez-vous par email à <span className="text-yellow-400">{form.email}</span>.
                 {createdNumero && ' Conservez ce numéro pour toute correspondance.'}
               </p>
+
+              {/* ── Ajouter à mon calendrier ── */}
+              {createdRdv && (
+              <>
+                <div className="flex flex-col sm:flex-row items-center gap-2 mt-1">
+                  {/* Fichier .ics (événement unique) — Apple Calendar / Outlook */}
+                  <a
+                    href={createdId ? `/api/reservations/${createdId}/ics` : '#'}
+                    className="btn-gold text-xs px-5 py-2.5 flex items-center justify-center gap-2"
+                  >
+                    <CalendarPlus size={14} /> Apple / Outlook
+                  </a>
+                  {/* Lien direct vers Google Agenda (événement pré-rempli) */}
+                  <a
+                    href={buildGoogleCalUrl(createdRdv)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-gold-outline text-xs px-5 py-2.5 flex items-center justify-center gap-2"
+                  >
+                    <Calendar size={14} /> Google Agenda
+                  </a>
+                </div>
+                <p className="text-white/40 text-[11px] font-body">
+                  Ajoutez ce rendez-vous à votre calendrier.
+                </p>
+              </>
+              )}
 
               {!isConnected && (
                 <div
@@ -590,26 +668,26 @@ export default function ReservationForm() {
                   </div>
                   <div className="sm:col-span-2">
                     <label className="text-yellow-400/70 text-xs font-body mb-1.5 block">Téléphone *</label>
-                    <div className="flex gap-2">
-                      <div className="relative flex-shrink-0">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="relative w-full sm:w-[185px] flex-shrink-0">
                         <select
                           name="indicatif" value={form.indicatif} onChange={handle}
-                          className="input-gold text-white appearance-none pr-7 pl-3 w-[120px]"
+                          className="input-gold text-white appearance-none pr-8 pl-3 w-full"
                           style={{ backgroundColor: 'rgba(30,25,15,0.9)' }}
                           aria-label="Indicatif téléphonique"
                         >
                           {INDICATIFS.map(i => (
                             <option key={i.code + i.label} value={i.code}>
-                              {i.label} ({i.code})
+                              {i.code} — {i.label}
                             </option>
                           ))}
                         </select>
-                        <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-yellow-400/60 pointer-events-none" />
+                        <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-yellow-400/60 pointer-events-none" />
                       </div>
                       <input
                         name="telephone" type="tel" value={form.telephone} onChange={handle} required
                         placeholder="696 10 20 30"
-                        className="input-gold text-white flex-1 min-w-0"
+                        className="input-gold text-white w-full sm:flex-1 min-w-0"
                         style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
                       />
                     </div>
@@ -809,10 +887,8 @@ export default function ReservationForm() {
                       </div>
                       {isConnected && form.autrePrenom && (
                         <p className="col-span-2 text-yellow-400/50 text-xs font-body">
-                          Vous pouvez ajouter cette personne dans{' '}
-                          <Link href="/compte/informations" className="underline hover:text-yellow-400">
-                            Mes informations
-                          </Link>.
+                          Cette personne sera <strong>ajoutée automatiquement</strong> à votre compte
+                          et suivra sa propre fidélité.
                         </p>
                       )}
                     </div>

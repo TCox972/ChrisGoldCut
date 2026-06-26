@@ -1,6 +1,19 @@
 const WHATSAPP_API = 'https://graph.facebook.com/v21.0';
 
 /**
+ * Retourne les identifiants WhatsApp s'ils sont RÉELLEMENT configurés, sinon null.
+ * On considère "non configuré" les valeurs vides ET les placeholders du .env.example
+ * (ex. "votre-token-whatsapp") — sinon Meta renvoie une erreur 401 inutile.
+ */
+function whatsappCreds(): { phoneNumberId: string; token: string } | null {
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const token = process.env.WHATSAPP_TOKEN;
+  const isPlaceholder = (v?: string) => !v || v.trim() === '' || v.startsWith('votre-');
+  if (isPlaceholder(phoneNumberId) || isPlaceholder(token)) return null;
+  return { phoneNumberId: phoneNumberId!, token: token! };
+}
+
+/**
  * Normalise un numéro au format international sans « + » attendu par l'API Meta.
  * Par défaut, les numéros locaux (commençant par 0) sont considérés martiniquais (+596).
  */
@@ -23,13 +36,13 @@ function normalizePhone(to: string): string {
  */
 export async function sendSMS({ to, body }: { to: string; body: string }) {
   const phone = normalizePhone(to);
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-  const token = process.env.WHATSAPP_TOKEN;
+  const creds = whatsappCreds();
 
-  if (!phoneNumberId || !token) {
+  if (!creds) {
     console.log(`[WhatsApp non envoyé — non configuré] → ${phone}: ${body}`);
     return;
   }
+  const { phoneNumberId, token } = creds;
 
   const res = await fetch(`${WHATSAPP_API}/${phoneNumberId}/messages`, {
     method: 'POST',
@@ -78,15 +91,15 @@ export async function sendWhatsAppTemplate({
   lang?: string;
 }) {
   const phone = normalizePhone(to);
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-  const token = process.env.WHATSAPP_TOKEN;
+  const creds = whatsappCreds();
 
-  if (!phoneNumberId || !token) {
+  if (!creds) {
     console.log(
       `[WhatsApp template non envoyé — non configuré] → ${phone} : ${template}(${params.join(', ')})`,
     );
     return;
   }
+  const { phoneNumberId, token } = creds;
 
   const res = await fetch(`${WHATSAPP_API}/${phoneNumberId}/messages`, {
     method: 'POST',

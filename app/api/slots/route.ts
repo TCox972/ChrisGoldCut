@@ -11,7 +11,7 @@ import {
   isSlotAvailable,
   parseDuree,
 } from '@/lib/slots';
-import { dayStartUTC, dayEndUTC, toDateStrUTC, toSlotUTC } from '@/lib/dates';
+import { dayStartUTC, dayEndUTC, toDateStrUTC, toSlotUTC, salonNow } from '@/lib/dates';
 
 // ─── GET /api/slots ──────────────────────────────────────────────────────────
 // Params: date=YYYY-MM-DD &
@@ -79,8 +79,10 @@ export async function GET(req: NextRequest) {
       duree = parseDuree(prestation.duree);
     }
 
-    // Filtrer les créneaux passés (référence UTC, cohérente avec le stockage)
-    const now = new Date();
+    // Filtrer les créneaux passés. Référence "maintenant" en heure murale du
+    // salon (Martinique, UTC-4) — sinon en soirée l'UTC bascule au lendemain et
+    // le filtre ne s'applique plus.
+    const now = salonNow();
     const todayStr = toDateStrUTC(now);
     const isToday = dateStr === todayStr;
     const currentTime = toSlotUTC(now);

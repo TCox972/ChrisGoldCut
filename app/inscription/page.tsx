@@ -115,10 +115,17 @@ function InscriptionContent() {
                       Un email de validation a été envoyé à{' '}
                       <strong className="text-white">{form.email}</strong>.
                     </p>
-                    <p className="font-body text-sm text-white/70 leading-relaxed mb-6">
-                      Cliquez sur le lien qu'il contient pour activer votre compte,
-                      puis connectez-vous. Pensez à vérifier vos spams.
+                    <p className="font-body text-sm text-white/70 leading-relaxed mb-4">
+                      Cliquez sur le lien qu'il contient pour activer votre compte, puis connectez-vous.
                     </p>
+                    <div className="flex items-start gap-2 text-left rounded-lg px-4 py-3 mb-6"
+                      style={{ backgroundColor: 'rgba(212,160,23,0.1)', border: '1px solid rgba(212,160,23,0.3)' }}>
+                      <span className="text-yellow-400 text-base leading-none mt-0.5">⚠️</span>
+                      <p className="font-body text-xs text-yellow-200/90 leading-relaxed">
+                        Vous ne voyez pas l'email&nbsp;? <strong>Vérifiez votre dossier «&nbsp;Spam&nbsp;»
+                        ou «&nbsp;Courriers indésirables&nbsp;»</strong> — il s'y trouve parfois.
+                      </p>
+                    </div>
                   </>
                 ) : (
                   <p className="font-body text-sm text-white/70 leading-relaxed mb-6">

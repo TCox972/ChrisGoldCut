@@ -32,7 +32,7 @@ type FidelitePersonne = {
   cycleCount:              number;
   reservationsUntilReward: number;
   palier:                  number;
-  rewardEur:               number;
+  rewardPercent:           number;
 };
 
 const MOIS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
@@ -148,44 +148,39 @@ export default function MesReservationsPage() {
             const rewardReady = fp.cycleCount === 0 && fp.totalValidees > 0;
             return (
               <div key={fp.pourQui}
-                className="rounded-lg border border-yellow-400/30 bg-gradient-to-br from-yellow-400/10 to-yellow-400/[0.02] p-5">
-                <div className="flex items-center justify-between gap-4 mb-3">
-                  <div className="flex items-center gap-2">
-                    <Gift size={16} className="text-yellow-400" />
-                    <span className="font-display text-xs tracking-[0.2em] uppercase text-yellow-400 font-bold">
+                className="rounded-lg border border-yellow-400/40 bg-black/60 px-3.5 py-2.5">
+                <div className="flex items-center justify-between gap-3 mb-1.5">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Gift size={12} className="text-yellow-400 flex-shrink-0" />
+                    <span className="font-display text-[10px] tracking-[0.18em] uppercase text-yellow-400 font-bold truncate">
                       {fp.label}
                     </span>
                   </div>
-                  <span className="font-body text-[11px] text-white/50">
+                  <span className="font-body text-[10px] text-white/45 text-right flex-shrink-0">
                     {rewardReady
-                      ? `Prime de ${fp.rewardEur} € disponible sur le prochain RDV`
-                      : `Plus que ${fp.reservationsUntilReward} RDV${fp.reservationsUntilReward > 1 ? 's' : ''} avant ${fp.rewardEur} € offerts`}
+                      ? `Remise ${fp.rewardPercent} % au prochain RDV`
+                      : `${fp.reservationsUntilReward} RDV avant ${fp.rewardPercent} %`}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   {Array.from({ length: fp.palier }).map((_, i) => {
                     const filled = i < fp.cycleCount;
                     const isReward = i === fp.palier - 1;
                     return (
                       <div
                         key={i}
-                        className={`flex-1 h-2 rounded-full transition-colors
+                        className={`flex-1 h-1 rounded-full transition-colors
                           ${filled
                             ? 'bg-yellow-400'
                             : isReward
                               ? 'bg-white/10 border border-yellow-400/40'
                               : 'bg-white/10'}`}
-                        title={isReward ? `Récompense : ${fp.rewardEur} €` : `RDV ${i + 1}`}
+                        title={isReward ? `Récompense : ${fp.rewardPercent} %` : `RDV ${i + 1}`}
                       />
                     );
                   })}
                 </div>
-
-                <p className="font-body text-[11px] text-white/40 mt-3">
-                  {fp.totalValidees} prestation{fp.totalValidees > 1 ? 's' : ''} validée{fp.totalValidees > 1 ? 's' : ''} ·
-                  1 RDV offert toutes les {fp.palier} prestations
-                </p>
               </div>
             );
           })}

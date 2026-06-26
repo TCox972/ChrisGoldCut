@@ -5,8 +5,9 @@ import User from '@/models/User';
 import { requireAuth } from '@/lib/auth';
 
 // ─── Configuration fidélité ──────────────────────────────────────────────────
-const PALIER      = 6;
-const REWARD_EUR  = 10;
+// La récompense s'applique sur la 5ème prestation validée : remise de 5 %.
+const PALIER          = 5;
+const REWARD_PERCENT  = 5;
 
 function buildEntry(pourQui: string, label: string, count: number) {
   return {
@@ -16,7 +17,7 @@ function buildEntry(pourQui: string, label: string, count: number) {
     cycleCount: count % PALIER,
     reservationsUntilReward: PALIER - (count % PALIER),
     palier: PALIER,
-    rewardEur: REWARD_EUR,
+    rewardPercent: REWARD_PERCENT,
   };
 }
 

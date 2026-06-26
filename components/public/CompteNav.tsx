@@ -27,7 +27,7 @@ export default function CompteNav() {
             id="compte-nav-select"
             value={pathname}
             onChange={e => router.push(e.target.value)}
-            className="w-full appearance-none bg-black/40 border rounded-lg px-4 py-3 pr-10
+            className="w-full appearance-none bg-black/70 border rounded-lg px-4 py-3 pr-10
               font-display text-sm tracking-[0.15em] uppercase font-bold text-white
               focus:outline-none focus:ring-2 focus:ring-yellow-400/40 transition-colors"
             style={{ borderColor: 'rgba(212,160,23,0.5)' }}
@@ -50,12 +50,15 @@ export default function CompteNav() {
         <p className="sr-only">Section actuelle : {currentLabel}</p>
       </div>
 
-      {/* ── Desktop : onglets horizontaux (inchangés) ── */}
-      <div className="hidden md:flex gap-1 mb-8 bg-black/30 rounded p-1 w-fit">
+      {/* ── Desktop : onglets horizontaux ── */}
+      <div className="hidden md:flex gap-1 mb-8 bg-black/70 border rounded-lg p-1 w-fit shadow-lg"
+        style={{ borderColor: 'rgba(212,160,23,0.35)' }}>
         {links.map(l => (
           <Link key={l.href} href={l.href}
-            className={`px-5 py-2 rounded text-xs font-display tracking-[0.15em] uppercase transition-all duration-200
-              ${pathname === l.href ? 'bg-yellow-400 text-gray-900 font-bold' : 'text-white/60 hover:text-white'}`}>
+            className={`px-5 py-2 rounded-md text-xs font-display tracking-[0.15em] uppercase transition-all duration-200
+              ${pathname === l.href
+                ? 'bg-yellow-400 text-gray-900 font-bold'
+                : 'text-white/85 hover:text-white hover:bg-white/10'}`}>
             {l.label}
           </Link>
         ))}

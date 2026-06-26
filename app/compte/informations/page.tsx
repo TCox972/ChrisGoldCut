@@ -15,6 +15,7 @@ export default function InformationsPage() {
   const { user, isLoading: authLoading } = useAuth();
   const [data,    setData]    = useState<UserData | null>(null);
   const [editing, setEditing] = useState(false);
+  const [editingOthers, setEditingOthers] = useState(false); // édition de la section "Personnes supplémentaires"
   const [saving,  setSaving]  = useState(false);
   const [draft,   setDraft]   = useState<UserData | null>(null);
 
@@ -71,6 +72,7 @@ export default function InformationsPage() {
         setData(updated);
         setDraft(updated);
         setEditing(false);
+        setEditingOthers(false);
       } else {
         const err = await res.json().catch(() => null);
         setSaveError(err?.error || 'Échec de l\'enregistrement. Réessayez.');
@@ -283,13 +285,24 @@ export default function InformationsPage() {
             <Users size={18} className="text-gray-500" />
             <h2 className="font-body text-base font-semibold text-gray-900">Personnes supplémentaires</h2>
           </div>
-          <span className="font-body text-xs text-gray-400">
-            {(editing ? draft! : data).autresPersonnes?.length || 0} / 3
-          </span>
+          <div className="flex items-center gap-4">
+            <span className="font-body text-xs text-gray-400">
+              {(editingOthers ? draft! : data).autresPersonnes?.length || 0} / 3
+            </span>
+            {!editingOthers && (
+              <button onClick={() => { setEditingOthers(true); setSaveError(''); }}
+                className="btn-gold-outline text-xs px-5 py-2 flex items-center gap-2">
+                <Edit3 size={13} /> Modifier
+              </button>
+            )}
+          </div>
         </div>
         <p className="font-body text-xs text-gray-400 mb-4">
           Ajoutez vos proches pour réserver à leur nom. Chaque personne dispose de sa propre fidélité.
         </p>
+        {((editingOthers ? draft! : data).autresPersonnes?.length ?? 0) === 0 && !editingOthers ? (
+          <p className="font-body text-sm text-gray-400 italic">Aucune personne supplémentaire.</p>
+        ) : (
         <table className="w-full max-w-lg">
           <thead>
             <tr className="border-b border-gray-100">
@@ -299,10 +312,10 @@ export default function InformationsPage() {
             </tr>
           </thead>
           <tbody>
-            {(editing ? draft! : data).autresPersonnes?.map((o, i) => (
+            {(editingOthers ? draft! : data).autresPersonnes?.map((o, i) => (
               <tr key={i} className="border-b border-gray-50">
                 <td className="py-3 pr-8">
-                  {editing ? (
+                  {editingOthers ? (
                     <input value={o.prenom} onChange={e => setDraft(d => {
                       if (!d) return d;
                       const ap = [...d.autresPersonnes];
@@ -314,7 +327,7 @@ export default function InformationsPage() {
                   )}
                 </td>
                 <td className="py-3">
-                  {editing ? (
+                  {editingOthers ? (
                     <input value={o.nom} onChange={e => setDraft(d => {
                       if (!d) return d;
                       const ap = [...d.autresPersonnes];
@@ -326,7 +339,7 @@ export default function InformationsPage() {
                   )}
                 </td>
                 <td className="py-3 pl-4">
-                  {editing && (
+                  {editingOthers && (
                     <button onClick={() => removeOther(i)} className="text-gray-300 hover:text-red-400 transition-colors">
                       <Trash2 size={14} />
                     </button>
@@ -336,15 +349,33 @@ export default function InformationsPage() {
             ))}
           </tbody>
         </table>
-        {editing && ((editing ? draft! : data).autresPersonnes?.length ?? 0) < 3 && (
+        )}
+        {editingOthers && ((draft?.autresPersonnes?.length ?? 0) < 3) && (
           <button onClick={addOther} className="flex items-center gap-2 mt-4 text-gray-400 hover:text-gray-700 transition-colors">
             <Plus size={14} /><span className="font-body text-sm">Ajouter une personne</span>
           </button>
         )}
-        {editing && ((editing ? draft! : data).autresPersonnes?.length ?? 0) >= 3 && (
+        {editingOthers && ((draft?.autresPersonnes?.length ?? 0) >= 3) && (
           <p className="font-body text-xs text-yellow-600 mt-4">
             Nombre maximum de personnes atteint (3).
           </p>
+        )}
+
+        {editingOthers && (
+          <div className="flex gap-3 mt-6">
+            <button onClick={save} disabled={saving}
+              className="btn-gold text-xs px-5 py-2 flex items-center gap-2 disabled:opacity-60">
+              {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+              Enregistrer
+            </button>
+            <button onClick={() => { setEditingOthers(false); setDraft(data); setSaveError(''); }}
+              className="btn-gold-outline text-xs px-5 py-2">
+              Annuler
+            </button>
+          </div>
+        )}
+        {editingOthers && saveError && (
+          <p className="font-body text-xs text-red-600 bg-red-50 rounded px-3 py-2 mt-4">{saveError}</p>
         )}
       </div>
     </div>

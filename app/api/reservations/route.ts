@@ -8,7 +8,7 @@ import User from '@/models/User';
 import { generateUniqueNumero } from '@/models/UsedNumero';
 import { requireAuth, getSession } from '@/lib/auth';
 import { getOccupiedSlots, isSlotAvailable, parseDuree, dateToSlot, generateAllSlots } from '@/lib/slots';
-import { dayStartUTC, dayEndUTC, toDateStrUTC } from '@/lib/dates';
+import { dayStartUTC, dayEndUTC, toDateStrUTC, isSlotPast } from '@/lib/dates';
 import { notifyBookingConfirmation } from '@/lib/notifications';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
@@ -142,6 +142,15 @@ export async function POST(req: NextRequest) {
     if (!generateAllSlots().includes(slot)) {
       return NextResponse.json(
         { error: 'Créneau horaire invalide. Les réservations se font toutes les demi-heures.' },
+        { status: 400 }
+      );
+    }
+
+    // Refuser un créneau déjà passé (public). Le staff peut enregistrer un RDV
+    // a posteriori, donc on ne bloque que les réservations publiques.
+    if (!isStaff && isSlotPast(rdvDate)) {
+      return NextResponse.json(
+        { error: 'Ce créneau est déjà passé. Choisissez un horaire à venir.' },
         { status: 400 }
       );
     }
@@ -331,6 +340,7 @@ export async function POST(req: NextRequest) {
         prestations,
         date: rdvDate,
         pourQui,
+        dureeMinutes: duree,
       });
     }
 

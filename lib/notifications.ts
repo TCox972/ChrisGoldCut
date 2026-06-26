@@ -1,6 +1,7 @@
 import { sendMail } from '@/lib/mail';
 import { sendWhatsAppTemplate } from '@/lib/sms';
 import { getBaseUrl } from '@/lib/site-url';
+import { buildRdvIcs } from '@/lib/ics';
 
 // Nom du template WhatsApp approuvé pour la confirmation de RDV.
 // Configurable via env pour ne pas avoir à redéployer si le template change.
@@ -52,6 +53,7 @@ type RdvInfo = {
   prestations: string[];
   date: Date;
   pourQui: string;
+  dureeMinutes?: number;
 };
 
 // ─── 0. Validation d'email à l'inscription ───────────────────────────────────
@@ -144,6 +146,20 @@ export async function notifyBookingConfirmation(rdv: RdvInfo) {
   const date = new Date(rdv.date);
   const manageUrl = `${BASE_URL}/mes-rdv/${rdv._id}`;
 
+  // Événement calendrier : fichier .ics (pièce jointe) + lien Google Agenda.
+  const icsRdv = {
+    numero:       rdv.numero,
+    date:         rdv.date,
+    dureeMinutes: rdv.dureeMinutes ?? 30,
+    prestations:  rdv.prestations,
+    manageUrl,
+  };
+  const icsContent = buildRdvIcs(icsRdv);
+  // Lien vers le .ics (événement unique, METHOD:PUBLISH). Ouvert depuis un email :
+  // iOS/macOS proposent d'ajouter l'événement ; sur desktop il est téléchargé puis
+  // ajouté à l'ouverture. (Le .ics est aussi joint en pièce jointe.)
+  const calendarUrl = `${BASE_URL}/api/reservations/${rdv._id}/ics`;
+
   await sendMail({
     to: rdv.clientEmail,
     subject: `Gold Cut — Confirmation de votre RDV #${rdv.numero}`,
@@ -170,10 +186,28 @@ export async function notifyBookingConfirmation(rdv: RdvInfo) {
           Gérer mon rendez-vous
         </a>
       </div>
+      <div style="text-align: center; margin: 8px 0 4px;">
+        <a href="${calendarUrl}"
+          style="display: inline-block; border: 1px solid #D4A017; color: #8a6d1a; font-weight: bold;
+            font-size: 13px; letter-spacing: 0.5px; text-decoration: none;
+            padding: 10px 24px; border-radius: 6px;">
+          📅 Ajouter à mon calendrier
+        </a>
+      </div>
+      <p style="font-size: 11px; color: #999; line-height: 1.6; text-align: center;">
+        (Ouvre votre application calendrier. Le fichier <strong>.ics</strong> est aussi joint à cet email.)
+      </p>
       <p style="font-size: 12px; color: #999; line-height: 1.6;">
         À bientôt chez Gold Cut !
       </p>
     `),
+    attachments: [
+      {
+        filename:    `gold-cut-rdv-${rdv.numero}.ics`,
+        content:     icsContent,
+        contentType: 'text/calendar; charset=utf-8; method=PUBLISH',
+      },
+    ],
   }).catch(err => console.error('[notifyBookingConfirmation] email error:', err));
 
   // WhatsApp (non bloquant) — template approuvé requis pour un message à l'initiative du salon.
