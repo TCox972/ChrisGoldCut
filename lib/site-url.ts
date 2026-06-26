@@ -20,6 +20,21 @@ export function getBaseUrl(): string {
 }
 
 /**
+ * URL de base dérivée de la requête HTTP entrante (en-têtes `host` +
+ * `x-forwarded-proto`). C'est la source la plus fiable en production : elle
+ * reflète le vrai domaine utilisé, sans dépendre de variables d'env figées au
+ * build (NEXT_PUBLIC_* est inliné au build → peut rester sur "localhost").
+ * Retombe sur getBaseUrl() si les en-têtes sont absents.
+ */
+export function getBaseUrlFromRequest(req: Request): string {
+  const host = req.headers.get('host');
+  if (!host) return getBaseUrl();
+  const proto = req.headers.get('x-forwarded-proto')
+    || (host.startsWith('localhost') || host.startsWith('127.0.0.1') ? 'http' : 'https');
+  return `${proto}://${host}`;
+}
+
+/**
  * Transforme une URL http(s) en URL `webcal://`.
  * Les liens `webcal://` sont remis par le navigateur/OS à l'application calendrier
  * par défaut (Apple Calendar, Outlook…) au lieu de télécharger le fichier .ics.

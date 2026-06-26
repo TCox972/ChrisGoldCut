@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Reservation from '@/models/Reservation';
 import { buildRdvIcs } from '@/lib/ics';
-import { getBaseUrl } from '@/lib/site-url';
+import { getBaseUrlFromRequest } from '@/lib/site-url';
 
 // ─── GET /api/reservations/[id]/ics ──────────────────────────────────────────
 // Sert l'événement calendrier (.ics) du rendez-vous. Renvoyé avec le type MIME
@@ -11,7 +11,7 @@ import { getBaseUrl } from '@/lib/site-url';
 // devinable), comme le lien de gestion /mes-rdv/[id].
 type Params = { params: { id: string } };
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
   try {
     await connectDB();
 
@@ -31,7 +31,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       date:         rdv.date,
       dureeMinutes: rdv.dureeMinutes ?? 30,
       prestations:  rdv.prestations ?? [],
-      manageUrl:    `${getBaseUrl()}/mes-rdv/${rdv._id}`,
+      manageUrl:    `${getBaseUrlFromRequest(req)}/mes-rdv/${rdv._id}`,
     });
 
     return new NextResponse(ics, {

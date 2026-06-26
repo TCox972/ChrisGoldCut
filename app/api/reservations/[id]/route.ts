@@ -8,6 +8,7 @@ import { requireAuth } from '@/lib/auth';
 import { dateToSlot, generateAllSlots, getOccupiedSlots, isSlotAvailable, parseDuree } from '@/lib/slots';
 import { notifyCancellation, notifyDelay } from '@/lib/notifications';
 import { dayStartUTC, dayEndUTC, toDateStrUTC, isSlotPast } from '@/lib/dates';
+import { getBaseUrlFromRequest } from '@/lib/site-url';
 
 type Params = { params: { id: string } };
 
@@ -357,7 +358,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         prestations: rdv.prestations,
         date: rdv.date,
         pourQui: rdv.pourQui,
-      }, body.motifAnnulation);
+      }, body.motifAnnulation, getBaseUrlFromRequest(req));
     }
 
     try {

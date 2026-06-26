@@ -8,6 +8,7 @@ import AccountInvite from '@/models/AccountInvite';
 import { validatePassword } from '@/lib/password';
 import { notifyEmailVerification } from '@/lib/notifications';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { getBaseUrlFromRequest } from '@/lib/site-url';
 
 export async function POST(req: NextRequest) {
   const rl = rateLimit({ key: `register:${getClientIp(req)}`, limit: 5, windowMs: 10 * 60 * 1000 });
@@ -90,7 +91,10 @@ export async function POST(req: NextRequest) {
     } else {
       // ─── Envoi de l'email de validation (bloquant : on veut savoir s'il part) ──
       try {
-        await notifyEmailVerification({ prenom, email: user.email, token: verifyToken });
+        await notifyEmailVerification({
+          prenom, email: user.email, token: verifyToken,
+          baseUrl: getBaseUrlFromRequest(req),
+        });
       } catch (mailErr) {
         console.error('[register] Échec envoi email de validation:', mailErr);
         // Le compte est créé mais l'email n'est pas parti : on le signale pour que

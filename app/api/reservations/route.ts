@@ -9,6 +9,7 @@ import { generateUniqueNumero } from '@/models/UsedNumero';
 import { requireAuth, getSession } from '@/lib/auth';
 import { getOccupiedSlots, isSlotAvailable, parseDuree, dateToSlot, generateAllSlots } from '@/lib/slots';
 import { dayStartUTC, dayEndUTC, toDateStrUTC, isSlotPast } from '@/lib/dates';
+import { getBaseUrlFromRequest } from '@/lib/site-url';
 import { notifyBookingConfirmation } from '@/lib/notifications';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
@@ -341,7 +342,7 @@ export async function POST(req: NextRequest) {
         date: rdvDate,
         pourQui,
         dureeMinutes: duree,
-      });
+      }, getBaseUrlFromRequest(req));
     }
 
     return NextResponse.json(reservation, { status: 201 });

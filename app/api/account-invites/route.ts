@@ -6,6 +6,7 @@ import Reservation from '@/models/Reservation';
 import User from '@/models/User';
 import { requireStaff } from '@/lib/auth';
 import { notifyAccountInvite } from '@/lib/notifications';
+import { getBaseUrlFromRequest } from '@/lib/site-url';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -55,7 +56,10 @@ export async function POST(req: NextRequest) {
     });
 
     try {
-      await notifyAccountInvite({ prenom, email, token, withReward: !!reservationId });
+      await notifyAccountInvite({
+        prenom, email, token, withReward: !!reservationId,
+        baseUrl: getBaseUrlFromRequest(req),
+      });
     } catch (mailErr) {
       console.error('[account-invites] échec envoi email:', mailErr);
       return NextResponse.json(

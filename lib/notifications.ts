@@ -62,8 +62,10 @@ export async function notifyEmailVerification(opts: {
   prenom: string;
   email: string;
   token: string;
+  /** URL de base (dérivée de la requête en prod) ; sinon fallback env. */
+  baseUrl?: string;
 }) {
-  const verifyUrl = `${BASE_URL}/verifier-email/${opts.token}`;
+  const verifyUrl = `${opts.baseUrl || BASE_URL}/verifier-email/${opts.token}`;
 
   await sendMail({
     to: opts.email,
@@ -101,8 +103,10 @@ export async function notifyAccountInvite(opts: {
   token: string;
   /** true si l'invitation est liée à une prestation payée → 1er point fidélité offert */
   withReward: boolean;
+  /** URL de base (dérivée de la requête en prod) ; sinon fallback env. */
+  baseUrl?: string;
 }) {
-  const inviteUrl = `${BASE_URL}/inscription?invite=${opts.token}`;
+  const inviteUrl = `${opts.baseUrl || BASE_URL}/inscription?invite=${opts.token}`;
   const greeting = opts.prenom ? `Bonjour <strong>${opts.prenom}</strong>,` : 'Bonjour,';
 
   await sendMail({
@@ -142,9 +146,10 @@ export async function notifyAccountInvite(opts: {
 
 // ─── 1. Confirmation de réservation ──────────────────────────────────────────
 
-export async function notifyBookingConfirmation(rdv: RdvInfo) {
+export async function notifyBookingConfirmation(rdv: RdvInfo, baseUrl?: string) {
+  const base = baseUrl || BASE_URL;
   const date = new Date(rdv.date);
-  const manageUrl = `${BASE_URL}/mes-rdv/${rdv._id}`;
+  const manageUrl = `${base}/mes-rdv/${rdv._id}`;
 
   // Événement calendrier : fichier .ics (pièce jointe) + lien Google Agenda.
   const icsRdv = {
@@ -158,7 +163,7 @@ export async function notifyBookingConfirmation(rdv: RdvInfo) {
   // Lien vers le .ics (événement unique, METHOD:PUBLISH). Ouvert depuis un email :
   // iOS/macOS proposent d'ajouter l'événement ; sur desktop il est téléchargé puis
   // ajouté à l'ouverture. (Le .ics est aussi joint en pièce jointe.)
-  const calendarUrl = `${BASE_URL}/api/reservations/${rdv._id}/ics`;
+  const calendarUrl = `${base}/api/reservations/${rdv._id}/ics`;
 
   await sendMail({
     to: rdv.clientEmail,
@@ -271,7 +276,8 @@ export async function notifyReminder24h(rdv: RdvInfo) {
 
 // ─── 3. Annulation par le salon (avec motif) ────────────────────────────────
 
-export async function notifyCancellation(rdv: RdvInfo, motif: string) {
+export async function notifyCancellation(rdv: RdvInfo, motif: string, baseUrl?: string) {
+  const base = baseUrl || BASE_URL;
   const date = new Date(rdv.date);
 
   // Email
@@ -295,7 +301,7 @@ export async function notifyCancellation(rdv: RdvInfo, motif: string) {
         Nous vous invitons à reprendre rendez-vous à votre convenance.
       </p>
       <div style="text-align: center; margin: 24px 0;">
-        <a href="${BASE_URL}/reservation"
+        <a href="${base}/reservation"
           style="display: inline-block; background: #D4A017; color: #111; font-weight: bold;
             font-size: 14px; letter-spacing: 1px; text-decoration: none;
             padding: 14px 32px; border-radius: 6px;">
