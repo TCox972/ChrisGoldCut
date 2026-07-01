@@ -52,7 +52,6 @@ type RdvInfo = {
   clientTel: string;
   prestations: string[];
   date: Date;
-  pourQui: string;
   dureeMinutes?: number;
 };
 
@@ -180,7 +179,6 @@ export async function notifyBookingConfirmation(rdv: RdvInfo, baseUrl?: string) 
         <p style="font-size: 13px; color: #333; margin: 4px 0;"><strong>Date :</strong> ${formatDate(date)}</p>
         <p style="font-size: 13px; color: #333; margin: 4px 0;"><strong>Heure :</strong> ${formatHeure(date)}</p>
         <p style="font-size: 13px; color: #333; margin: 4px 0;"><strong>Prestation(s) :</strong> ${rdv.prestations.join(', ')}</p>
-        <p style="font-size: 13px; color: #333; margin: 4px 0;"><strong>Pour :</strong> ${rdv.pourQui}</p>
         <p style="font-size: 13px; color: #333; margin: 4px 0;"><strong>Référence :</strong> #${rdv.numero}</p>
       </div>
       <div style="text-align: center; margin: 24px 0;">

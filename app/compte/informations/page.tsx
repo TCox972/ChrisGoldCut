@@ -4,18 +4,16 @@ import { useState, useEffect } from 'react';
 import CompteNav from '@/components/public/CompteNav';
 import { useAuth } from '@/lib/auth-context';
 import { validatePassword, PASSWORD_RULES_LABEL } from '@/lib/password';
-import { User, Users, Edit3, Save, Plus, Trash2, Loader2, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, Edit3, Save, Loader2, Lock, Eye, EyeOff } from 'lucide-react';
 
 type UserData = {
   prenom: string; nom: string; email: string; telephone: string;
-  autresPersonnes: { prenom: string; nom: string }[];
 };
 
 export default function InformationsPage() {
   const { user, isLoading: authLoading } = useAuth();
   const [data,    setData]    = useState<UserData | null>(null);
   const [editing, setEditing] = useState(false);
-  const [editingOthers, setEditingOthers] = useState(false); // édition de la section "Personnes supplémentaires"
   const [saving,  setSaving]  = useState(false);
   const [draft,   setDraft]   = useState<UserData | null>(null);
 
@@ -46,7 +44,6 @@ export default function InformationsPage() {
           nom:             d?.nom             ?? '',
           email:           d?.email           ?? '',
           telephone:       d?.telephone       ?? '',
-          autresPersonnes: Array.isArray(d?.autresPersonnes) ? d.autresPersonnes : [],
         };
         setData(safe);
         setDraft(safe);
@@ -72,7 +69,6 @@ export default function InformationsPage() {
         setData(updated);
         setDraft(updated);
         setEditing(false);
-        setEditingOthers(false);
       } else {
         const err = await res.json().catch(() => null);
         setSaveError(err?.error || 'Échec de l\'enregistrement. Réessayez.');
@@ -120,12 +116,6 @@ export default function InformationsPage() {
       setPwdLoading(false);
     }
   };
-
-  const removeOther = (idx: number) =>
-    setDraft(d => d ? { ...d, autresPersonnes: (d.autresPersonnes ?? []).filter((_, i) => i !== idx) } : d);
-
-  const addOther = () =>
-    setDraft(d => d ? { ...d, autresPersonnes: [...(d.autresPersonnes ?? []), { prenom: '', nom: '' }] } : d);
 
   if (loadError) {
     return (
@@ -278,106 +268,6 @@ export default function InformationsPage() {
         )}
       </div>
 
-      {/* Autres personnes */}
-      <div className="bg-white rounded-lg p-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Users size={18} className="text-gray-500" />
-            <h2 className="font-body text-base font-semibold text-gray-900">Personnes supplémentaires</h2>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="font-body text-xs text-gray-400">
-              {(editingOthers ? draft! : data).autresPersonnes?.length || 0} / 3
-            </span>
-            {!editingOthers && (
-              <button onClick={() => { setEditingOthers(true); setSaveError(''); }}
-                className="btn-gold-outline text-xs px-5 py-2 flex items-center gap-2">
-                <Edit3 size={13} /> Modifier
-              </button>
-            )}
-          </div>
-        </div>
-        <p className="font-body text-xs text-gray-400 mb-4">
-          Ajoutez vos proches pour réserver à leur nom. Chaque personne dispose de sa propre fidélité.
-        </p>
-        {((editingOthers ? draft! : data).autresPersonnes?.length ?? 0) === 0 && !editingOthers ? (
-          <p className="font-body text-sm text-gray-400 italic">Aucune personne supplémentaire.</p>
-        ) : (
-        <table className="w-full max-w-lg">
-          <thead>
-            <tr className="border-b border-gray-100">
-              <th className="font-body text-xs font-semibold text-gray-500 text-left pb-3 pr-8">Prénom</th>
-              <th className="font-body text-xs font-semibold text-gray-500 text-left pb-3">Nom</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {(editingOthers ? draft! : data).autresPersonnes?.map((o, i) => (
-              <tr key={i} className="border-b border-gray-50">
-                <td className="py-3 pr-8">
-                  {editingOthers ? (
-                    <input value={o.prenom} onChange={e => setDraft(d => {
-                      if (!d) return d;
-                      const ap = [...d.autresPersonnes];
-                      ap[i] = { ...ap[i], prenom: e.target.value };
-                      return { ...d, autresPersonnes: ap };
-                    })} className="border-b border-gray-200 text-sm font-body w-full outline-none focus:border-yellow-500" />
-                  ) : (
-                    <span className="font-body text-sm text-gray-700">{o.prenom}</span>
-                  )}
-                </td>
-                <td className="py-3">
-                  {editingOthers ? (
-                    <input value={o.nom} onChange={e => setDraft(d => {
-                      if (!d) return d;
-                      const ap = [...d.autresPersonnes];
-                      ap[i] = { ...ap[i], nom: e.target.value };
-                      return { ...d, autresPersonnes: ap };
-                    })} className="border-b border-gray-200 text-sm font-body w-full outline-none focus:border-yellow-500" />
-                  ) : (
-                    <span className="font-body text-sm text-gray-700">{o.nom}</span>
-                  )}
-                </td>
-                <td className="py-3 pl-4">
-                  {editingOthers && (
-                    <button onClick={() => removeOther(i)} className="text-gray-300 hover:text-red-400 transition-colors">
-                      <Trash2 size={14} />
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        )}
-        {editingOthers && ((draft?.autresPersonnes?.length ?? 0) < 3) && (
-          <button onClick={addOther} className="flex items-center gap-2 mt-4 text-gray-400 hover:text-gray-700 transition-colors">
-            <Plus size={14} /><span className="font-body text-sm">Ajouter une personne</span>
-          </button>
-        )}
-        {editingOthers && ((draft?.autresPersonnes?.length ?? 0) >= 3) && (
-          <p className="font-body text-xs text-yellow-600 mt-4">
-            Nombre maximum de personnes atteint (3).
-          </p>
-        )}
-
-        {editingOthers && (
-          <div className="flex gap-3 mt-6">
-            <button onClick={save} disabled={saving}
-              className="btn-gold text-xs px-5 py-2 flex items-center gap-2 disabled:opacity-60">
-              {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-              Enregistrer
-            </button>
-            <button onClick={() => { setEditingOthers(false); setDraft(data); setSaveError(''); }}
-              className="btn-gold-outline text-xs px-5 py-2">
-              Annuler
-            </button>
-          </div>
-        )}
-        {editingOthers && saveError && (
-          <p className="font-body text-xs text-red-600 bg-red-50 rounded px-3 py-2 mt-4">{saveError}</p>
-        )}
-      </div>
     </div>
   );
 }

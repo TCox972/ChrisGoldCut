@@ -21,8 +21,6 @@ export interface IReservation extends Document {
   clientNom:   string;
   clientEmail: string;
   clientTel:   string;
-  /** Qui est concerné par la prestation (le client lui-même ou une autre personne) */
-  pourQui:     string;
   prestations:  string[];             // noms des prestations choisies
   dureeMinutes: number;              // durée totale en minutes
   date:         Date;                // date + heure du RDV
@@ -69,7 +67,6 @@ const ReservationSchema = new Schema<IReservation>(
     // Optionnel : un client passager créé par le staff peut n'avoir qu'un téléphone.
     clientEmail: { type: String, default: '' },
     clientTel:   { type: String, default: '' },
-    pourQui:     { type: String, default: 'moi' },
     prestations:  [{ type: String }],
     dureeMinutes: { type: Number, default: 30 },
     date:         { type: Date, required: true },

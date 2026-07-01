@@ -7,6 +7,7 @@ import Prestation from '@/models/Prestation';
 import { requireAuth } from '@/lib/auth';
 import { dateToSlot, generateAllSlots, getOccupiedSlots, isSlotAvailable, parseDuree } from '@/lib/slots';
 import { notifyCancellation, notifyDelay } from '@/lib/notifications';
+import { FIDELITE_PALIER, FIDELITE_REWARD_PERCENT, prestationsTotal, estEligibleFidelite } from '@/lib/fidelite';
 import { dayStartUTC, dayEndUTC, toDateStrUTC, isSlotPast } from '@/lib/dates';
 import { getBaseUrlFromRequest } from '@/lib/site-url';
 
@@ -150,7 +151,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           clientTel: rdv.clientTel,
           prestations: rdv.prestations,
           date: rdv.date,
-          pourQui: rdv.pourQui,
         });
       }
     }
@@ -162,30 +162,34 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         rdv.statut = 'termine';
         nativeSet.statut = 'termine';
 
-        // ── Fidélité par bénéficiaire (pourQui) : on compte les
-        // prestations validées pour la même personne (même userId +
-        // même pourQui). La 5ème (10ème, etc.) déclenche la remise de 5%
-        // sur le montant des prestations de CE rendez-vous.
+        // ── Fidélité : un point n'est accordé qu'aux réservations générant
+        // au moins 25 € de CA prestations. On compte les réservations
+        // validées éligibles du même utilisateur ; le PALIER-ième point
+        // (5ème, 10ème, …) déclenche la remise sur le montant de CE RDV.
         if (!wasValidee && rdv.userId) {
-          const PALIER = 5;
-          const REWARD_PERCENT = 5;
-          const otherCount = await Reservation.countDocuments({
-            _id:               { $ne: rdv._id },
-            userId:            rdv.userId,
-            pourQui:           rdv.pourQui || 'moi',
-            prestationValidee: true,
-          });
-          if ((otherCount + 1) % PALIER === 0) {
-            // Montant brut des prestations de ce RDV, puis 5% arrondi au centime.
-            const prestaDocs = await Prestation.find({ nom: { $in: rdv.prestations } })
-              .select('nom prix').lean();
-            const priceByNom = new Map(prestaDocs.map(p => [p.nom, p.prix]));
-            const brut = (rdv.prestations ?? []).reduce(
-              (s: number, nom: string) => s + (priceByNom.get(nom) ?? 0), 0,
-            );
-            const reduction = Math.round(brut * REWARD_PERCENT) / 100;
-            rdv.fideliteReductionEur = reduction;
-            nativeSet.fideliteReductionEur = reduction;
+          // Table nom → prix (tous prix confondus, prix courants du salon).
+          const prestaDocs = await Prestation.find().select('nom prix').lean();
+          const priceByNom = new Map(prestaDocs.map(p => [p.nom, p.prix]));
+
+          // Ce RDV ne compte que s'il atteint le seuil de CA.
+          if (estEligibleFidelite(rdv.prestations, priceByNom)) {
+            // Compter les précédentes réservations validées ÉLIGIBLES (≥ seuil).
+            const pastValidated = await Reservation.find({
+              _id:               { $ne: rdv._id },
+              userId:            rdv.userId,
+              prestationValidee: true,
+            }).select('prestations').lean();
+            const eligibleCount = pastValidated.filter(
+              r => estEligibleFidelite(r.prestations, priceByNom),
+            ).length;
+
+            if ((eligibleCount + 1) % FIDELITE_PALIER === 0) {
+              // Remise = REWARD_PERCENT % du CA prestations de ce RDV, arrondi au centime.
+              const brut = prestationsTotal(rdv.prestations, priceByNom);
+              const reduction = Math.round(brut * FIDELITE_REWARD_PERCENT) / 100;
+              rdv.fideliteReductionEur = reduction;
+              nativeSet.fideliteReductionEur = reduction;
+            }
           }
         }
       } else {
@@ -357,7 +361,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         clientTel: rdv.clientTel,
         prestations: rdv.prestations,
         date: rdv.date,
-        pourQui: rdv.pourQui,
       }, body.motifAnnulation, getBaseUrlFromRequest(req));
     }
 

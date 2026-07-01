@@ -28,8 +28,6 @@ export interface IUser extends Document {
   /** Token de validation d'email + expiration */
   verifyToken?: string;
   verifyTokenExpiry?: Date;
-  /** Personnes rattachées au compte (enfants, proches) */
-  autresPersonnes: { prenom: string; nom: string }[];
   createdAt: Date;
   updatedAt: Date;
   /** Compare un mot de passe en clair avec le hash stocké */
@@ -53,12 +51,6 @@ const UserSchema = new Schema<IUser>(
     emailVerified:    { type: Boolean, default: undefined },
     verifyToken:      { type: String,  default: undefined },
     verifyTokenExpiry:{ type: Date,    default: undefined },
-    autresPersonnes: [
-      {
-        prenom: { type: String, required: true },
-        nom:    { type: String, required: true },
-      },
-    ],
   },
   { timestamps: true }
 );

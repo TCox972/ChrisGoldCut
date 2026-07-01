@@ -31,18 +31,10 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
 
     // Champs autorisés à modifier par le client lui-même
-    const allowed = ['prenom', 'nom', 'telephone', 'autresPersonnes'];
+    const allowed = ['prenom', 'nom', 'telephone'];
     const update: Record<string, unknown> = {};
     for (const key of allowed) {
       if (body[key] !== undefined) update[key] = body[key];
-    }
-
-    // Max 3 personnes supplémentaires
-    if (Array.isArray(update.autresPersonnes) && update.autresPersonnes.length > 3) {
-      return NextResponse.json(
-        { error: 'Vous pouvez ajouter 3 personnes supplémentaires maximum.' },
-        { status: 400 },
-      );
     }
 
     const updated = await User.findByIdAndUpdate(

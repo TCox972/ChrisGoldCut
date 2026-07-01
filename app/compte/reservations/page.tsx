@@ -11,7 +11,6 @@ type Rdv = {
   _id: string;
   numero: string;
   clientNom: string;
-  pourQui?: string;
   prestations: string[];
   dureeMinutes: number;
   date: string;
@@ -26,7 +25,6 @@ type StaffMember = { _id: string; prenom: string; nom: string };
 type Slot = { heure: string; disponible: boolean };
 
 type FidelitePersonne = {
-  pourQui:                 string;
   label:                   string;
   totalValidees:           number;
   cycleCount:              number;
@@ -147,7 +145,7 @@ export default function MesReservationsPage() {
           {fidelitePersonnes.map(fp => {
             const rewardReady = fp.cycleCount === 0 && fp.totalValidees > 0;
             return (
-              <div key={fp.pourQui}
+              <div key={fp.label}
                 className="rounded-lg border border-yellow-400/40 bg-black/60 px-3.5 py-2.5">
                 <div className="flex items-center justify-between gap-3 mb-1.5">
                   <div className="flex items-center gap-1.5 min-w-0">
@@ -247,10 +245,8 @@ export default function MesReservationsPage() {
                     N° {rdv.numero}
                   </p>
                   <p className="font-body text-sm">
-                    <span className="font-semibold text-gray-800">Pour : </span>
-                    <span className="text-gray-600">
-                      {rdv.pourQui && rdv.pourQui !== 'moi' ? rdv.pourQui : rdv.clientNom}
-                    </span>
+                    <span className="font-semibold text-gray-800">Client : </span>
+                    <span className="text-gray-600">{rdv.clientNom}</span>
                   </p>
                   <p className="font-body text-sm mt-1">
                     <span className="font-semibold text-gray-800">Prestations : </span>

@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
 import Reservation from '@/models/Reservation';
+import Prestation from '@/models/Prestation';
 import { requireStaff } from '@/lib/auth';
+import { FIDELITE_PALIER, estEligibleFidelite } from '@/lib/fidelite';
 
 // ─── GET /api/clients ─────────────────────────────────────────────────────────
 // Staff (admin + employé) — liste paginée des clients avec stats enrichies.
@@ -70,6 +72,10 @@ export async function GET(req: NextRequest) {
       .sort({ date: -1 })
       .lean();
 
+    // Table nom → prix pour évaluer l'éligibilité fidélité (CA prestations ≥ 25 €).
+    const prestaDocs = await Prestation.find().select('nom prix').lean();
+    const priceByNom = new Map(prestaDocs.map(p => [p.nom, p.prix]));
+
     // Grouper par userId
     const rdvsByUser = new Map<string, typeof allRdvs>();
     for (const r of allRdvs) {
@@ -91,9 +97,11 @@ export async function GET(req: NextRequest) {
       // Nombre de réservations effectuées (validées)
       const nbReservations = validated.length;
 
-      // Fidélité
-      const palier = 5;
-      const cycleCount = nbReservations % palier;
+      // Fidélité : seules les réservations validées éligibles (CA prestations
+      // ≥ 25 €) comptent pour un point.
+      const palier = FIDELITE_PALIER;
+      const nbPoints = validated.filter(r => estEligibleFidelite(r.prestations, priceByNom)).length;
+      const cycleCount = nbPoints % palier;
       const reservationsUntilReward = palier - cycleCount;
 
       // Prestations favorites (top 3)

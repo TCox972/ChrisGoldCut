@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import SectionTitle from '../ui/SectionTitle';
-import { Loader2, Calendar, CalendarPlus, User, Users, UserPlus, Scissors, ChevronDown, ChevronLeft, ChevronRight, X, Plus } from 'lucide-react';
+import { Loader2, Calendar, CalendarPlus, User, UserPlus, Scissors, ChevronDown, ChevronLeft, ChevronRight, X, Plus } from 'lucide-react';
 import { buildGoogleCalUrl, type IcsRdv } from '@/lib/ics';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -23,7 +23,6 @@ type UserProfile = {
   email:           string;
   telephone:       string;
   blackliste?:     boolean;
-  autresPersonnes: { prenom: string; nom: string }[];
 };
 
 type Slot = { heure: string; disponible: boolean };
@@ -40,9 +39,6 @@ type FormState = {
   heure:         string; // HH:MM
   prestationIds: string[]; // 1 à 3 prestations
   employeId:     string; // '' = pas de préférence
-  pourQui:       string;
-  autrePrenom:   string;
-  autreNom:      string;
 };
 
 const MAX_PRESTATIONS = 3;
@@ -128,8 +124,7 @@ export default function ReservationForm() {
   // ── Formulaire ───────────────────────────────────────────────────────────
   const [form,   setForm]   = useState<FormState>({
     prenom: '', nom: '', email: '', indicatif: DEFAULT_INDICATIF, telephone: '',
-    date: '', heure: '', prestationIds: [], employeId: '', pourQui: 'moi',
-    autrePrenom: '', autreNom: '',
+    date: '', heure: '', prestationIds: [], employeId: '',
   });
   const [status,        setStatus]        = useState<Status>('idle');
   const [errMsg,        setErrMsg]        = useState('');
@@ -234,36 +229,24 @@ export default function ReservationForm() {
   const handle = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
-  const resolvePourQui = (): string => {
-    if (form.pourQui === 'moi') return form.prenom || 'moi';
-    if (form.pourQui === 'nouveau') return `${form.autrePrenom} ${form.autreNom}`.trim() || 'Autre personne';
-    const idx = parseInt(form.pourQui.replace('autre-', ''));
-    const p = profile?.autresPersonnes?.[idx];
-    return p ? `${p.prenom} ${p.nom}` : 'Autre';
-  };
-
   // ─── Soumission ────────────────────────────────────────────────────────────
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrMsg('');
 
-    // Garde-fou : nom et téléphone obligatoires
-    if (!form.nom.trim()) {
-      setErrMsg('Veuillez indiquer votre nom.');
-      setStatus('error');
-      return;
-    }
-    if (!form.telephone.trim()) {
-      setErrMsg('Veuillez indiquer votre numéro de téléphone.');
-      setStatus('error');
-      return;
-    }
-
-    // Garde-fou : "Pour qui = Autre personne" exige au moins un prénom
-    if (form.pourQui === 'nouveau' && !form.autrePrenom.trim()) {
-      setErrMsg('Veuillez indiquer le prénom de la personne pour qui vous réservez.');
-      setStatus('error');
-      return;
+    // Garde-fou : nom et téléphone obligatoires (uniquement pour un visiteur
+    // non connecté ; pour un client connecté ces infos proviennent du compte).
+    if (!isConnected) {
+      if (!form.nom.trim()) {
+        setErrMsg('Veuillez indiquer votre nom.');
+        setStatus('error');
+        return;
+      }
+      if (!form.telephone.trim()) {
+        setErrMsg('Veuillez indiquer votre numéro de téléphone.');
+        setStatus('error');
+        return;
+      }
     }
 
     const prestationsSelectionnees = form.prestationIds
@@ -289,7 +272,6 @@ export default function ReservationForm() {
           clientNom:    `${form.prenom} ${form.nom}`.trim(),
           clientEmail:  form.email,
           clientTel:    `${form.indicatif} ${form.telephone.trim()}`.trim(),
-          pourQui:      resolvePourQui(),
           prestations:  prestationsSelectionnees.map(p => p.nom),
           dureeMinutes: dureeMinutes,
           // Date envoyée en UTC explicite (.000Z) avec l'heure murale du salon.
@@ -319,31 +301,6 @@ export default function ReservationForm() {
           manageUrl:    `${window.location.origin}/mes-rdv/${data._id}`,
         });
         setStatus('success');
-
-        // Auto-ajout de la nouvelle personne au compte (client connecté).
-        // Si on a réservé pour une "Autre personne" pas encore enregistrée,
-        // on l'ajoute à autresPersonnes pour qu'elle suive sa propre fidélité.
-        if (isConnected && form.pourQui === 'nouveau' && form.autrePrenom.trim()) {
-          const nouvelle = { prenom: form.autrePrenom.trim(), nom: form.autreNom.trim() };
-          const existantes = profile?.autresPersonnes ?? [];
-          const dejaPresente = existantes.some(
-            p => p.prenom.trim().toLowerCase() === nouvelle.prenom.toLowerCase()
-              && (p.nom || '').trim().toLowerCase() === nouvelle.nom.toLowerCase(),
-          );
-          if (!dejaPresente && existantes.length < 3) {
-            const updated = [...existantes, nouvelle];
-            fetch('/api/me', {
-              method:  'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body:    JSON.stringify({ autresPersonnes: updated }),
-            })
-              .then(r => (r.ok ? r.json() : null))
-              .then(saved => {
-                if (saved) setProfile(p => p ? { ...p, autresPersonnes: saved.autresPersonnes ?? updated } : p);
-              })
-              .catch(() => { /* non bloquant : la réservation est déjà créée */ });
-          }
-        }
       }
     } catch {
       setErrMsg('Erreur réseau. Vérifiez votre connexion.');
@@ -357,7 +314,7 @@ export default function ReservationForm() {
     setCreatedNumero('');
     setCreatedId('');
     setCreatedRdv(null);
-    setForm(f => ({ ...f, date: '', heure: '', prestationIds: [], employeId: '', pourQui: 'moi', autrePrenom: '', autreNom: '' }));
+    setForm(f => ({ ...f, date: '', heure: '', prestationIds: [], employeId: '' }));
   };
 
   // ─── Mini calendrier ──────────────────────────────────────────────────────
@@ -636,11 +593,20 @@ export default function ReservationForm() {
 
             {/* Formulaire */}
             <div className="bg-gray-900 p-8">
-              <p className="font-body text-white/70 text-sm mb-6">Complétez ce formulaire :</p>
+              {isConnected ? (
+                <p className="font-body text-white/70 text-sm mb-6">
+                  Bonjour <span className="text-yellow-400 font-semibold">{profile?.prenom || form.prenom}</span>,
+                  {' '}choisissez vos prestations et votre créneau pour prendre rendez-vous.
+                </p>
+              ) : (
+                <p className="font-body text-white/70 text-sm mb-6">Complétez ce formulaire :</p>
+              )}
 
               <form onSubmit={submit} className="flex flex-col gap-5">
 
-                {/* ── Bloc identité ── */}
+                {/* ── Bloc identité (masqué si le client est connecté : ses infos
+                    sont déjà rattachées à son compte) ── */}
+                {!isConnected && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-yellow-400/70 text-xs font-body mb-1.5 block">Prénom *</label>
@@ -696,6 +662,7 @@ export default function ReservationForm() {
                     </div>
                   </div>
                 </div>
+                )}
 
                 {/* ── Prestations (jusqu'à 3 — AVANT la date pour calculer les créneaux) ── */}
                 <div>
@@ -715,11 +682,11 @@ export default function ReservationForm() {
                       {/* Puces des prestations sélectionnées */}
                       {form.prestationIds.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-2">
-                          {form.prestationIds.map(id => {
+                          {form.prestationIds.map((id, i) => {
                             const p = prestations.find(x => x._id === id);
                             if (!p) return null;
                             return (
-                              <span key={id}
+                              <span key={`${id}-${i}`}
                                 className="inline-flex items-center gap-1.5 bg-yellow-400/15 border border-yellow-400/40
                                   text-yellow-300 font-body text-xs px-2.5 py-1 rounded-full">
                                 {p.nom} · {p.prix}€
@@ -727,7 +694,7 @@ export default function ReservationForm() {
                                   type="button"
                                   onClick={() => setForm(f => ({
                                     ...f,
-                                    prestationIds: f.prestationIds.filter(x => x !== id),
+                                    prestationIds: f.prestationIds.filter((_, idx) => idx !== i),
                                   }))}
                                   className="text-yellow-400/60 hover:text-yellow-400"
                                   aria-label="Retirer"
@@ -748,7 +715,9 @@ export default function ReservationForm() {
                             onChange={e => {
                               const id = e.target.value;
                               if (!id) return;
-                              setForm(f => f.prestationIds.includes(id)
+                              // On autorise le cumul d'une même prestation (ex. 3 « Coupe
+                              // enfant » pour trois enfants), dans la limite de MAX_PRESTATIONS.
+                              setForm(f => f.prestationIds.length >= MAX_PRESTATIONS
                                 ? f
                                 : { ...f, prestationIds: [...f.prestationIds, id] }
                               );
@@ -769,7 +738,7 @@ export default function ReservationForm() {
                               ];
                             })().map(cat => {
                               const group = prestations
-                                .filter(p => p.categorie === cat && !form.prestationIds.includes(p._id))
+                                .filter(p => p.categorie === cat)
                                 .sort((a, b) => b.prix - a.prix);
                               if (group.length === 0) return null;
                               return (
@@ -842,66 +811,6 @@ export default function ReservationForm() {
                     ? renderSlots()
                     : <p className="text-white/30 text-xs font-body">Sélectionnez d'abord une prestation.</p>
                   }
-                </div>
-
-                {/* ── Pour qui ── */}
-                <div>
-                  <label className="text-yellow-400/70 text-xs font-body mb-1.5 flex items-center gap-1.5">
-                    <Users size={11} className="text-yellow-400" />
-                    Pour qui est ce rendez-vous ?
-                  </label>
-                  <div className="relative">
-                    <select
-                      name="pourQui" value={form.pourQui}
-                      onChange={handle}
-                      className="input-gold text-white w-full appearance-none pr-8"
-                      style={{ backgroundColor: 'rgba(30,25,15,0.9)' }}
-                    >
-                      <option value="moi">
-                        {form.prenom ? `Pour moi (${form.prenom})` : 'Pour moi'}
-                      </option>
-                      {isConnected && profile?.autresPersonnes && profile.autresPersonnes.length > 0 && (
-                        <optgroup label="── Mes proches ──">
-                          {profile.autresPersonnes.map((p, i) => (
-                            <option key={i} value={`autre-${i}`}>
-                              {p.prenom} {p.nom}
-                            </option>
-                          ))}
-                        </optgroup>
-                      )}
-                      <option value="nouveau">Autre personne...</option>
-                    </select>
-                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-yellow-400/60 pointer-events-none" />
-                  </div>
-
-                  {form.pourQui === 'nouveau' && (
-                    <div className="grid grid-cols-2 gap-3 mt-3">
-                      <div>
-                        <label className="text-white/40 text-xs font-body mb-1 block">Prénom *</label>
-                        <input
-                          name="autrePrenom" value={form.autrePrenom} onChange={handle}
-                          placeholder="Prénom" required
-                          className="input-gold text-white w-full text-sm"
-                          style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-white/40 text-xs font-body mb-1 block">Nom</label>
-                        <input
-                          name="autreNom" value={form.autreNom} onChange={handle}
-                          placeholder="Nom"
-                          className="input-gold text-white w-full text-sm"
-                          style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
-                        />
-                      </div>
-                      {isConnected && form.autrePrenom && (
-                        <p className="col-span-2 text-yellow-400/50 text-xs font-body">
-                          Cette personne sera <strong>ajoutée automatiquement</strong> à votre compte
-                          et suivra sa propre fidélité.
-                        </p>
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 {/* ── Erreur ── */}

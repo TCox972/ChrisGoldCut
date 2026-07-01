@@ -33,10 +33,6 @@ const users = [
     prenom: 'Bernard', nom: 'Dupont',
     email: 'dupont.b@gmail.com', password: 'password123',
     telephone: '0696303030', role: 'client',
-    autresPersonnes: [
-      { prenom: 'Antoine', nom: 'Dupont' },
-      { prenom: 'Ernest',  nom: 'Dupont' },
-    ],
   },
   {
     prenom: 'Albert', nom: 'Martin',

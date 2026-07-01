@@ -17,7 +17,7 @@ type Achat = { nom: string; prix: number; quantite: number; livre?: boolean };
 
 type Rdv = {
   _id: string; numero: string;
-  clientNom: string; clientEmail: string; clientTel: string; pourQui: string;
+  clientNom: string; clientEmail: string; clientTel: string;
   date: string; prestations: string[]; dureeMinutes: number;
   statut: string; employeId?: string;
   achats: Achat[]; totalAchats: number;
@@ -28,7 +28,6 @@ type Rdv = {
 };
 
 type FidelitePersonne = {
-  pourQui:                 string;
   label:                   string;
   totalValidees:           number;
   cycleCount:              number;
@@ -217,9 +216,7 @@ export default function AdminReservationsPage() {
       .then(r => r.json())
       .then(d => {
         if (d?.personnes && Array.isArray(d.personnes) && d.personnes.length > 0) {
-          const pourQui = detailRdv.pourQui || 'moi';
-          const exact = d.personnes.find((p: FidelitePersonne) => p.pourQui === pourQui);
-          setDetailFidelite(exact ?? d.personnes[0]);
+          setDetailFidelite(d.personnes[0]);
         } else {
           setDetailFidelite(null);
         }
@@ -542,9 +539,7 @@ export default function AdminReservationsPage() {
             .then(r => r.json())
             .then(d => {
               if (d?.personnes && Array.isArray(d.personnes) && d.personnes.length > 0) {
-                const pourQui = detailRdv.pourQui || 'moi';
-                const exact = d.personnes.find((p: FidelitePersonne) => p.pourQui === pourQui);
-                setDetailFidelite(exact ?? d.personnes[0]);
+                setDetailFidelite(d.personnes[0]);
               }
             })
             .catch(console.error);
@@ -1119,11 +1114,6 @@ export default function AdminReservationsPage() {
               <p className="font-body text-sm font-medium text-gray-900">{rdv.clientNom}</p>
               <p className="font-body text-sm text-gray-600">{rdv.clientEmail}</p>
               {rdv.clientTel && <p className="font-body text-sm text-gray-600">{rdv.clientTel}</p>}
-              {rdv.pourQui && rdv.pourQui !== 'moi' && rdv.pourQui !== rdv.clientNom && (
-                <p className="font-body text-xs text-yellow-700 bg-yellow-100 inline-block px-2 py-0.5 rounded-full">
-                  Pour : {rdv.pourQui}
-                </p>
-              )}
             </div>
 
             {/* Fidélité client */}
@@ -1137,7 +1127,7 @@ export default function AdminReservationsPage() {
                     <div className="flex items-center gap-1.5">
                       <Gift size={13} className="text-yellow-600" />
                       <span className="font-body text-[10px] font-bold uppercase tracking-wider text-yellow-800">
-                        Fidélité {detailFidelite.pourQui && detailFidelite.pourQui !== 'moi' ? `— ${detailFidelite.label}` : ''}
+                        Fidélité
                       </span>
                     </div>
                     <span className="font-body text-[10px] text-yellow-700">

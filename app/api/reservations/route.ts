@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
     const body    = await req.json();
 
     const {
-      clientNom, clientEmail = '', clientTel = '', pourQui = 'moi',
+      clientNom, clientEmail = '', clientTel = '',
       prestations, date, dureeMinutes, achats = [],
       employeId: requestedEmployeId,
       clientUserId,            // staff : réserver pour un client inscrit
@@ -310,7 +310,6 @@ export async function POST(req: NextRequest) {
         clientNom,
         clientEmail,
         clientTel,
-        pourQui,
         prestations,
         dureeMinutes: duree,
         date:         rdvDate,
@@ -340,7 +339,6 @@ export async function POST(req: NextRequest) {
         clientTel,
         prestations,
         date: rdvDate,
-        pourQui,
         dureeMinutes: duree,
       }, getBaseUrlFromRequest(req));
     }

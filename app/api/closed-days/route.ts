@@ -98,7 +98,6 @@ export async function POST(req: NextRequest) {
             clientTel: rdv.clientTel,
             prestations: rdv.prestations,
             date: rdv.date,
-            pourQui: rdv.pourQui,
           },
           `Fermeture du salon : ${motif.trim()}`,
         ).catch(err => console.error('[closed-day cancel notify]', err));

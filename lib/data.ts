@@ -23,7 +23,6 @@ export type Client = {
   nom: string;
   email: string;
   telephone: string;
-  autresPersonnes: { prenom: string; nom: string }[];
   derniereReservation: string;
 };
 
@@ -88,13 +87,11 @@ export const clients: Client[] = [
   {
     id: 'cl1', prenom: 'Bernard', nom: 'Dupont',
     email: 'dupont.b@gmail.com', telephone: '06 96 30 30 30',
-    autresPersonnes: [{ prenom: 'Antoine', nom: 'Dupont' }, { prenom: 'Ernest', nom: 'Dupont' }],
     derniereReservation: '22 Août 2025',
   },
   {
     id: 'cl2', prenom: 'Albert', nom: 'Martin',
     email: 'a.martin@gmail.com', telephone: '0696 10 10 10',
-    autresPersonnes: [],
     derniereReservation: '14 Août 2025',
   },
 ];

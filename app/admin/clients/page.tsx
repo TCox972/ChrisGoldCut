@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Search, User, Users, Loader2, ChevronLeft, Ban, ShieldCheck, Gift, Calendar, Scissors, Clock, Star } from 'lucide-react';
+import { Search, User, Loader2, ChevronLeft, Ban, ShieldCheck, Gift, Calendar, Scissors, Clock, Star } from 'lucide-react';
 import ConfirmModal from '@/components/admin/ConfirmModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -15,7 +15,6 @@ type Client = {
   email: string;
   telephone: string;
   blackliste?: boolean;
-  autresPersonnes: { prenom: string; nom: string }[];
   derniereReservation: { date: string } | null;
   nbReservations: number;
   fidelite: { cycleCount: number; reservationsUntilReward: number; palier: number };
@@ -297,24 +296,6 @@ export default function AdminClientsPage() {
             </div>
           )}
 
-          {/* Autres personnes */}
-          {c.autresPersonnes?.length > 0 && (
-            <div className="p-8">
-              <div className="flex items-center gap-3 mb-4">
-                <Users size={16} className="text-gray-400" />
-                <h2 className="font-body text-sm font-semibold text-gray-900">Autres personnes rattachées</h2>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {c.autresPersonnes.map((p, i) => (
-                  <span key={i} className="inline-flex items-center gap-1 font-body text-sm
-                    bg-gray-50 border border-gray-200 rounded-full px-3 py-1 text-gray-700">
-                    <User size={12} className="text-gray-400" />
-                    {p.prenom} {p.nom}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     );

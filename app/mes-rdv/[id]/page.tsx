@@ -15,7 +15,6 @@ type Rdv = {
   clientNom: string; clientEmail: string;
   prestations: string[]; date: string;
   statut: string; dureeMinutes: number;
-  pourQui: string;
 };
 
 export default function MesRdvPage() {

@@ -40,7 +40,6 @@ export async function GET(req: NextRequest) {
         clientTel: rdv.clientTel,
         prestations: rdv.prestations,
         date: rdv.date,
-        pourQui: rdv.pourQui,
       });
 
       // Marquer comme envoyé pour ne pas renvoyer
