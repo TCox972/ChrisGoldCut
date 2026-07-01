@@ -109,6 +109,7 @@ export default function ReservationForm() {
 
   // ── Données ──────────────────────────────────────────────────────────────
   const [prestations,  setPrestations]  = useState<Prestation[]>([]);
+  const [catOrder,     setCatOrder]     = useState<string[]>([]);
   const [staff,        setStaff]        = useState<StaffMember[]>([]);
   const [profile,      setProfile]      = useState<UserProfile | null>(null);
   const [loadingP,     setLoadingP]     = useState(true);
@@ -153,10 +154,12 @@ export default function ReservationForm() {
     Promise.all([
       fetch('/api/prestations').then(r => r.json()),
       fetch('/api/staff').then(r => r.json()),
+      fetch('/api/category-order?type=prestations').then(r => r.json()).catch(() => ({ order: [] })),
     ])
-      .then(([prestas, staffData]) => {
+      .then(([prestas, staffData, orderData]) => {
         setPrestations(Array.isArray(prestas) ? prestas : []);
         setStaff(Array.isArray(staffData) ? staffData : []);
+        setCatOrder(Array.isArray(orderData?.order) ? orderData.order : []);
       })
       .catch(() => setErrMsg('Impossible de charger les prestations. Veuillez rafraîchir la page.'))
       .finally(() => setLoadingP(false));
@@ -758,10 +761,16 @@ export default function ReservationForm() {
                                 ? 'Choisir une prestation...'
                                 : 'Ajouter une autre prestation...'}
                             </option>
-                            {Array.from(new Set(prestations.map(p => p.categorie).filter(Boolean))).map(cat => {
-                              const group = prestations.filter(
-                                p => p.categorie === cat && !form.prestationIds.includes(p._id)
-                              );
+                            {(() => {
+                              const allCats = Array.from(new Set(prestations.map(p => p.categorie).filter(Boolean)));
+                              return [
+                                ...catOrder.filter(c => allCats.includes(c)),
+                                ...allCats.filter(c => !catOrder.includes(c)),
+                              ];
+                            })().map(cat => {
+                              const group = prestations
+                                .filter(p => p.categorie === cat && !form.prestationIds.includes(p._id))
+                                .sort((a, b) => b.prix - a.prix);
                               if (group.length === 0) return null;
                               return (
                                 <optgroup key={cat} label={`── ${cat} ──`}>
