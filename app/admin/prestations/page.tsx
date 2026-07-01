@@ -62,11 +62,13 @@ export default function AdminPrestationsPage() {
   const displayedItems = useMemo(() => {
     const byTab = items.filter(i => tab === 'actives' ? i.actif : !i.actif);
     const filtered = filterCat ? byTab.filter(i => i.categorie === filterCat) : byTab;
-    // Trier par ordre de catégorie
+    // Trier par ordre de catégorie, puis par prix décroissant au sein d'une catégorie
     return [...filtered].sort((a, b) => {
       const ia = orderedCategories.indexOf(a.categorie);
       const ib = orderedCategories.indexOf(b.categorie);
-      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+      const catDiff = (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+      if (catDiff !== 0) return catDiff;
+      return b.prix - a.prix;
     });
   }, [items, tab, filterCat, orderedCategories]);
 

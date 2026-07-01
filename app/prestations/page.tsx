@@ -72,7 +72,9 @@ export default function PrestationsPage() {
               style={{ borderColor: 'rgba(212,160,23,0.4)', backgroundColor: '#111111' }}
             >
               {categories.map((cat, ci) => {
-                const items = prestations.filter(p => p.categorie === cat);
+                const items = prestations
+                  .filter(p => p.categorie === cat)
+                  .sort((a, b) => b.prix - a.prix);
                 if (items.length === 0) return null;
                 return (
                   <div key={cat} className={ci < categories.length - 1 ? 'mb-12' : ''}>
